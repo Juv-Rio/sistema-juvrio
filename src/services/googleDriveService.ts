@@ -34,3 +34,21 @@ export async function uploadArquivo(file: Buffer, fileName: string, mimeType: st
     throw error;
   }
 }
+
+// NOVA FUNÇÃO: cria uma pasta no Google Drive e retorna o ID dela
+export async function criarPasta(nome: string, parentId?: string) {
+  try {
+    const response = await drive.files.create({
+      requestBody: {
+        name: nome,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: parentId ? [parentId] : undefined,
+      },
+      fields: 'id',
+    });
+    return response.data.id;
+  } catch (error) {
+    console.error('Erro ao criar pasta no Drive:', error);
+    throw error;
+  }
+}
