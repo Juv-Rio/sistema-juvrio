@@ -16,7 +16,7 @@ export async function GET() {
     // Filtra apenas arquivos de imagem e ordena para manter a ordem numérica/alfabética
     const avatarFiles = files
       .filter(file => /\.(png|jpe?g|svg|webp)$/i.test(file))
-      .sort((a, b) => a.localeCompare(undefined, {numeric: true, sensitivity: 'base'}))
+      .sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}))
       .map(file => `/avatars/${file}`);
 
     return NextResponse.json({ avatars: avatarFiles });

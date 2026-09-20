@@ -7,7 +7,7 @@ export async function GET() {
     
     // Vamos simular um registro de log
     // Dados: Nome, Departamento, Ação, Data/Hora
-    await adicionarLinha(spreadsheetId, [
+    await adicionarLinha(spreadsheetId, 'A1', [
       'Sistema JUV-RIO', 
       'TI / Infra', 
       'Teste de conexão inicial', 

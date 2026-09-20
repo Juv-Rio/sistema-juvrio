@@ -11,7 +11,7 @@ export async function GET() {
     const folderId = await criarPasta(nomeDoProcesso);
 
     // 2. Registra automaticamente na Planilha
-    await adicionarLinha(planilhaId, [
+    await adicionarLinha(planilhaId, 'A1', [
       nomeDoProcesso,
       'JUV-RIO',
       `Pasta criada com ID: ${folderId}`,
