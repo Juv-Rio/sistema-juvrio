@@ -3,8 +3,19 @@ import { useState, useEffect } from 'react';
 import { 
   Search, Filter, UserCheck, Edit3, CheckCircle2, 
   Loader2, X, UserX, ShieldCheck, Mail, Briefcase, Info,
-  Clock
+  Clock, ChevronDown
 } from 'lucide-react';
+// Detecta os perfis de acesso dinamicamente a partir das chaves retornadas pelo GET.
+// A API monta as chaves na ORDEM dos cabeçalhos da planilha (coluna A em diante).
+// Os perfis de acesso começam na coluna V (22ª coluna = índice 21), portanto tudo
+// que estiver a partir do índice 21 é um perfil. Campos cadastrais anteriores não entram.
+function detectarPerfis(lista: any[]): string[] {
+  if (lista.length === 0) return [];
+  // Object.keys preserva a ordem de inserção, que é a ordem das colunas da planilha
+  const chaves = Object.keys(lista[0]);
+  // Coluna V = índice 21 (0-based). Daí em diante: perfis de acesso.
+  return chaves.slice(21).filter(k => k && k.trim() !== '');
+}
 export default function GestaoUsuarios() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,10 +25,17 @@ export default function GestaoUsuarios() {
   // Estados para Configurações Dinâmicas (Setores e Funções)
   const [setores, setSetores] = useState<string[]>([]);
   const [mappingFuncoes, setMappingFuncoes] = useState<Record<string, string[]>>({});
+  // Estados para Perfis de Acesso Dinâmicos
+  const [perfisDisponiveis, setPerfisDisponiveis] = useState<string[]>([]);
+  const [dropdownPerfisAberto, setDropdownPerfisAberto] = useState(false);
   useEffect(() => {
     fetchUsuarios();
     fetchConfigs();
   }, []);
+  // Fecha o dropdown sempre que abrir um usuário diferente
+  useEffect(() => {
+    setDropdownPerfisAberto(false);
+  }, [usuarioSelecionado?.ID]);
   const fetchConfigs = async () => {
     try {
       const res = await fetch('/api/get-configs');
@@ -63,7 +81,9 @@ export default function GestaoUsuarios() {
     try {
       const res = await fetch('/api/admin/usuarios');
       const data = await res.json();
-      setUsuarios(Array.isArray(data) ? data : []);
+      const lista = Array.isArray(data) ? data : [];
+      setUsuarios(lista);
+      setPerfisDisponiveis(detectarPerfis(lista));
     } catch (e) {
       console.error("Erro ao buscar usuários:", e);
     } finally {
@@ -73,14 +93,11 @@ export default function GestaoUsuarios() {
   const handleSalvar = async () => {
     setSalvando(true);
     try {
-      const perfis = {
-        Admin: usuarioSelecionado.Admin === 'SIM',
-        Master: usuarioSelecionado.Master === 'SIM',
-        Gestao: usuarioSelecionado.Gestao === 'SIM',
-        Gerencial: usuarioSelecionado.Gerencial === 'SIM',
-        Operacional: usuarioSelecionado.Operacional === 'SIM',
-        Territorio: usuarioSelecionado.Territorio === 'SIM',
-      };
+      // Monta o objeto de perfis dinamicamente a partir dos perfis detectados
+      const perfis: Record<string, boolean> = {};
+      perfisDisponiveis.forEach(perfil => {
+        perfis[perfil] = usuarioSelecionado[perfil] === 'SIM';
+      });
       const res = await fetch('/api/admin/usuarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -108,7 +125,9 @@ export default function GestaoUsuarios() {
     u.Nome?.toLowerCase().includes(filtro.toLowerCase()) || 
     u.CPF?.includes(filtro)
   );
-  const inputSelectClass = "w-full p-4 bg-slate-50 border border-slate-100 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-400 transition-all font-bold text-slate-700 appearance-none cursor-pointer";
+  const inputSelectClass = "w-full p-4 bg-slate-50 border border-slate-100 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-400 ring-inset transition-all font-bold text-slate-700 appearance-none cursor-pointer";
+  const perfisSelecionadosCount = perfisDisponiveis.filter(p => usuarioSelecionado?.[p] === 'SIM').length;
+  const todosPerfisSelecionados = perfisDisponiveis.length > 0 && perfisDisponiveis.every(p => usuarioSelecionado?.[p] === 'SIM');
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
       {/* HEADER DA PÁGINA & BUSCA */}
@@ -204,7 +223,7 @@ export default function GestaoUsuarios() {
       </div>
       {usuarioSelecionado && (
         <div className="fixed inset-0 z-[100] flex items-center justify-end bg-slate-900/20 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="w-full max-w-md h-full bg-white shadow-2xl p-10 flex flex-col gap-8 animate-in slide-in-from-right duration-500">
+          <div className="w-full max-w-lg h-full bg-white shadow-2xl p-10 flex flex-col gap-8 animate-in slide-in-from-right duration-500">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-50 rounded-lg text-blue-500"><ShieldCheck size={20} /></div>
@@ -275,25 +294,63 @@ export default function GestaoUsuarios() {
                   </button>
                 </div>
               </div>
-              {/* SELEÇÃO DE PERFIS (CHAVES DE ACESSO) */}
+              {/* SELEÇÃO DE PERFIS DE ACESSO (LISTA SUSPENSA DINÂMICA COM CHECKBOXES) */}
               <div className="space-y-4">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2"><ShieldCheck size={12} /> Perfis de Acesso</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {['Admin', 'Master', 'Gestao', 'Gerencial', 'Operacional', 'Territorio'].map(perfil => (
-                    <button 
-                      key={perfil}
-                      onClick={() => setUsuarioSelecionado({
-                        ...usuarioSelecionado, 
-                        [perfil]: usuarioSelecionado[perfil] === 'SIM' ? 'NÃO' : 'SIM'
-                      })}
-                      className={`p-4 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-between group ${usuarioSelecionado[perfil] === 'SIM' ? 'bg-blue-500 border-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white border-slate-100 text-slate-400 hover:border-blue-200 hover:bg-blue-50/30'}`}
-                    >
-                      {perfil}
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${usuarioSelecionado[perfil] === 'SIM' ? 'bg-white border-white text-blue-500' : 'bg-slate-50 border-slate-200 text-transparent'}`}>
-                        <CheckCircle2 size={10} />
-                      </div>
-                    </button>
-                  ))}
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setDropdownPerfisAberto(!dropdownPerfisAberto)}
+                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-400 ring-inset transition-all font-bold text-slate-700 flex items-center justify-between gap-3 cursor-pointer"
+                  >
+                    <span className="truncate">
+                      {perfisSelecionadosCount > 0
+                        ? `${perfisSelecionadosCount} perfil${perfisSelecionadosCount > 1 ? 's' : ''} selecionado${perfisSelecionadosCount > 1 ? 's' : ''}`
+                        : 'Selecionar perfis de acesso'}
+                    </span>
+                    <ChevronDown size={16} className={`flex-shrink-0 transition-transform duration-300 ${dropdownPerfisAberto ? 'rotate-180' : ''}`} />
+                  </button>
+                  {dropdownPerfisAberto && (
+                    <div className="w-full bg-white border border-slate-100 rounded-xl shadow-sm p-2 max-h-72 overflow-y-auto custom-scroll">
+                      <label
+                        className={`flex items-center justify-between gap-3 p-3 mb-2 rounded-lg border transition-colors cursor-pointer ${todosPerfisSelecionados ? 'bg-blue-100/80 border-blue-200' : 'bg-blue-50/70 border-blue-100 hover:bg-blue-50'}`}
+                      >
+                        <span className="text-[10px] font-black uppercase tracking-widest text-blue-600">
+                          {todosPerfisSelecionados ? 'Desmarcar todos' : 'Selecionar todos'}
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={todosPerfisSelecionados}
+                          onChange={(e) => {
+                            const valor = e.target.checked ? 'SIM' : 'NÃO';
+                            const novosPerfis: any = { ...usuarioSelecionado };
+                            perfisDisponiveis.forEach(p => { novosPerfis[p] = valor; });
+                            setUsuarioSelecionado(novosPerfis);
+                          }}
+                          className="w-4 h-4 accent-blue-500 cursor-pointer"
+                        />
+                      </label>
+                      {perfisDisponiveis.length === 0 ? (
+                        <p className="p-4 text-center text-[9px] font-black uppercase tracking-widest text-slate-300">Nenhum perfil disponível na base</p>
+                      ) : perfisDisponiveis.map(perfil => (
+                        <label
+                          key={perfil}
+                          className="flex items-center justify-between gap-3 p-3 rounded-lg hover:bg-blue-50/60 transition-colors cursor-pointer"
+                        >
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{perfil}</span>
+                          <input
+                            type="checkbox"
+                            checked={usuarioSelecionado[perfil] === 'SIM'}
+                            onChange={() => setUsuarioSelecionado({
+                              ...usuarioSelecionado,
+                              [perfil]: usuarioSelecionado[perfil] === 'SIM' ? 'NÃO' : 'SIM'
+                            })}
+                            className="w-4 h-4 accent-blue-500 cursor-pointer"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

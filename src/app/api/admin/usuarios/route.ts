@@ -3,6 +3,18 @@ import { sheets } from '@/services/googleDriveService';
 
 const spreadsheetId = process.env.GOOGLE_SHEETS_USERS_ID;
 
+// Função auxiliar: converte número da coluna (1-based) para letra (1 -> A, 21 -> U, ...)
+function columnToLetter(columnNumber: number): string {
+  let letter = '';
+  let num = columnNumber;
+  while (num > 0) {
+    const resto = (num - 1) % 26;
+    letter = String.fromCharCode(65 + resto) + letter;
+    num = Math.floor((num - 1) / 26);
+  }
+  return letter;
+}
+
 // GET: Busca todos os usuários para listar na tabela de gestão
 export async function GET() {
   try {
@@ -30,7 +42,7 @@ export async function GET() {
   }
 }
 
-// POST: Atualiza Setor, Função, Status e Perfis de Acesso
+// POST: Atualiza Setor, Função, Status e Perfis de Acesso (dinamicamente)
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -58,21 +70,36 @@ export async function POST(request: Request) {
       }
     });
 
-    // 3. Atualiza Status (U) e Perfis de Acesso (V até AA)
-    // Mapeamos o objeto recebido do frontend para o padrão "SIM" / "NÃO"
-    const perfisRow = [
-      status || 'ATIVO',               // U (20)
-      perfis.Admin ? 'SIM' : 'NÃO',     // V (21)
-      perfis.Master ? 'SIM' : 'NÃO',    // W (22)
-      perfis.Gestao ? 'SIM' : 'NÃO',    // X (23)
-      perfis.Gerencial ? 'SIM' : 'NÃO', // Y (24)
-      perfis.Operacional ? 'SIM' : 'NÃO',// Z (25)
-      perfis.Territorio ? 'SIM' : 'NÃO' // AA (26)
-    ];
+    // 3. Busca os cabeçalhos (linha 1) para mapear os perfis dinamicamente
+    const headersResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'Usuarios!1:1',
+    });
+    const headers = headersResponse.data.values?.[0] || [];
+
+    // Perfis de acesso = cabeçalhos a partir da coluna V (índice 21)
+    const perfisExistentes = headers
+      .map((header, index) => ({ nome: String(header).trim(), idx: index }))
+      .filter(item => item.idx >= 21 && item.nome);
+
+    // Monta a linha de Status + Perfis
+    const perfisRow = [status || 'ATIVO']; // Coluna U (índice 20)
+
+    perfisExistentes.forEach(perfil => {
+      const valor = perfis?.[perfil.nome];
+      const ativo = valor === true || valor === 'SIM' || valor === 'sim' || valor === 'TRUE';
+      perfisRow.push(ativo ? 'SIM' : 'NÃO');
+    });
+
+    // Define a última coluna a ser gravada (U no mínimo, ou a última coluna de perfil encontrada)
+    const ultimaColuna = perfisExistentes.length > 0
+      ? Math.max(...perfisExistentes.map(p => p.idx)) + 1
+      : 21;
+    const ultimaLetra = columnToLetter(ultimaColuna);
 
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `Usuarios!U${rowIndex}:AA${rowIndex}`,
+      range: `Usuarios!U${rowIndex}:${ultimaLetra}${rowIndex}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [perfisRow]
