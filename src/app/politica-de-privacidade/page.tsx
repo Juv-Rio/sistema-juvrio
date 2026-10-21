@@ -66,10 +66,7 @@ const secoes = [
   },
   {
     titulo: '6. Compartilhamento e armazenamento',
-    paragrafos: [
-      'Os dados pessoais são armazenados em bases de dados gerenciadas pela própria Secretaria (Google Sheets e Google Drive institucionais), acessíveis apenas pelos agentes de tratamento autorizados, mediante credenciais individuais e controle de permissões.',
-    ],
-    intro: 'O compartilhamento de dados poderá ocorrer exclusivamente:',
+    intro: 'Os dados pessoais são armazenados em bases de dados gerenciadas pela própria Secretaria (Google Sheets e Google Drive institucionais), acessíveis apenas pelos agentes de tratamento autorizados, mediante credenciais individuais e controle de permissões. O compartilhamento de dados poderá ocorrer exclusivamente:',
     lista: [
       'Com outros órgãos e entidades da Administração Pública Municipal, nas hipóteses previstas em lei, na Lei de Acesso à Informação e nas normas de governança de dados do Município;',
       'Com prestadores de serviços formalmente contratados, na condição de operadores, vinculados por obrigação contratual de confidencialidade e proteção de dados;',
