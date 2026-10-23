@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect, useRef } from 'react';
 import { 
   User, Mail, Phone, MapPin, Briefcase, Lock, 
@@ -7,34 +6,26 @@ import {
   Loader2, AlertCircle, Calendar, CreditCard, Eye, EyeOff, 
   Upload, Trash2, Search, Minus, Plus
 } from 'lucide-react';
-
 const stepNames = ["Dados Pessoais", "Dados de Contato", "Atribuições", "Foto de Perfil", "Senha"];
-
 export default function NovoUsuario() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState(false);
-
   // Estados de Dados Dinâmicos
   const [setores, setSetores] = useState<string[]>([]);
   const [mappingFuncoes, setMappingFuncoes] = useState<Record<string, string[]>>({});
-  
   // Estados de Interface
   const [backgrounds, setBackgrounds] = useState<string[]>([]);
   const [bgIndex, setBgIndex] = useState(0);
   const [avatars, setAvatars] = useState<string[]>([]);
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [verSenha, setVerSenha] = useState(false);
-
-  // Estados de Concordância
-  const [aceitoTermos, setAceitoTermos] = useState(false);
-  const [aceitoPrivacidade, setAceitoPrivacidade] = useState(false);
-
+  // Estado de Concordância
+  const [aceitoPolitica, setAceitoPolitica] = useState(false);
   // Estados do Carrossel de Avatares
   const [avatarPage, setAvatarPage] = useState(0);
   const avatarsPerPage = 10; // 2 linhas de 5
-
   // Foto, Redimensionamento e Movimentação
   const [previewFoto, setPreviewFoto] = useState<string | null>(null);
   const [fotoOriginal, setFotoOriginal] = useState<HTMLImageElement | null>(null);
@@ -43,7 +34,6 @@ export default function NovoUsuario() {
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [formData, setFormData] = useState({
     nome: '', cpf: '', dataNascimento: '',
     email: '', telefone: '', instagram: '',
@@ -51,9 +41,7 @@ export default function NovoUsuario() {
     setor: '', funcao: '',
     avatar: '', senha: '', confirmarSenha: ''
   });
-
   const hoje = new Date().toISOString().split('T')[0];
-
   // SVG Fidedigno do Instagram
   const InstagramIcon = ({ size = 16 }: { size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -62,7 +50,6 @@ export default function NovoUsuario() {
       <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
     </svg>
   );
-
   // Carregamento de Recursos
   useEffect(() => {
     async function loadResources() {
@@ -91,19 +78,15 @@ export default function NovoUsuario() {
     }
     loadResources();
   }, []);
-
   useEffect(() => {
     if (backgrounds.length <= 1) return;
     const interval = setInterval(() => setBgIndex(p => (p + 1) % backgrounds.length), 5000);
     return () => clearInterval(interval);
   }, [backgrounds]);
-
   const totalAvatarPages = Math.ceil(avatars.length / avatarsPerPage);
   const currentAvatars = avatars.slice(avatarPage * avatarsPerPage, (avatarPage + 1) * avatarsPerPage);
-
   // Máscaras
   const maskCPF = (v: string) => v.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2').slice(0, 14);
-  
   const maskPhone = (v: string) => {
     let r = v.replace(/\D/g, "");
     if (r.length > 10) return r.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
@@ -112,17 +95,14 @@ export default function NovoUsuario() {
     if (r.length > 0) return "(" + r;
     return "";
   };
-
   const maskCEP = (v: string) => v.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
   const isEmailValido = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
   const passRules = {
     upper: /[A-Z]/.test(formData.senha),
     lower: /[a-z]/.test(formData.senha),
     number: /[0-9]/.test(formData.senha),
     special: /[!@#$%&]/.test(formData.senha)
   };
-
   // CEP API
   const handleCepBlur = async (cep: string) => {
     const clean = cep.replace(/\D/g, '');
@@ -136,7 +116,6 @@ export default function NovoUsuario() {
       }
     } finally { setBuscandoCep(false); }
   };
-
   const handleChange = (e: any) => {
     const { name, value } = e.target;
     let val = value;
@@ -146,7 +125,6 @@ export default function NovoUsuario() {
     setFormData(p => ({ ...p, [name]: val, ...(name === 'setor' ? { funcao: '' } : {}) }));
     setErro(null);
   };
-
   // Lógica de Redimensionamento e Movimentação (Canvas)
   const processCanvas = (img: HTMLImageElement, scale: number, moveX: number, moveY: number) => {
     const canvas = document.createElement('canvas');
@@ -163,11 +141,9 @@ export default function NovoUsuario() {
       setPreviewFoto(canvas.toDataURL('image/jpeg', 0.9));
     }
   };
-
   useEffect(() => {
     if (fotoOriginal) processCanvas(fotoOriginal, zoom, offset.x, offset.y);
   }, [zoom, offset, fotoOriginal]);
-
   const handleFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -182,20 +158,16 @@ export default function NovoUsuario() {
     };
     reader.readAsDataURL(file);
   };
-
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!fotoOriginal) return;
     setIsDragging(true);
     setStartPos({ x: e.clientX - offset.x, y: e.clientY - offset.y });
   };
-
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
     setOffset({ x: e.clientX - startPos.x, y: e.clientY - startPos.y });
   };
-
   const handleMouseUp = () => setIsDragging(false);
-
   const canGoNext = () => {
     if (step === 1) return formData.nome && formData.cpf.length === 14 && formData.dataNascimento && formData.dataNascimento <= hoje;
     if (step === 2) return isEmailValido(formData.email) && formData.telefone.length >= 14 && formData.cep.length === 9 && formData.logradouro && formData.numero && formData.bairro && formData.cidade;
@@ -203,7 +175,6 @@ export default function NovoUsuario() {
     if (step === 4) return previewFoto || formData.avatar;
     return true;
   };
-
   // Lógica de Transição entre passos (com Upload no Passo 4)
   const handleNextStep = async () => {
     if (step === 4) {
@@ -211,7 +182,6 @@ export default function NovoUsuario() {
       setErro(null);
       try {
         let fotoParaUpload = previewFoto;
-
         // Se não tem foto customizada mas tem avatar, converte o avatar para base64 para subir pro Drive
         if (!fotoParaUpload && formData.avatar && formData.avatar.startsWith('/')) {
           const response = await fetch(formData.avatar);
@@ -222,14 +192,12 @@ export default function NovoUsuario() {
             reader.readAsDataURL(blob);
           });
         }
-
         if (fotoParaUpload) {
           const upRes = await fetch('/api/upload-foto', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ fotoBase64: fotoParaUpload, cpf: formData.cpf })
           });
-          
           const upData = await upRes.json();
           if (!upRes.ok || !upData.fileId) {
             throw new Error(upData.error || "Erro ao realizar upload da foto de perfil.");
@@ -237,7 +205,6 @@ export default function NovoUsuario() {
           // Salva o ID do Drive no estado e avança
           setFormData(p => ({ ...p, avatar: upData.fileId }));
         }
-
         setStep(5);
       } catch (error: any) {
         setErro(error.message);
@@ -248,10 +215,9 @@ export default function NovoUsuario() {
       setStep(s => s + 1);
     }
   };
-
   const handleSubmit = async () => {
-    if (!aceitoTermos || !aceitoPrivacidade) {
-      setErro("Você precisa aceitar os termos e a política de privacidade para continuar.");
+    if (!aceitoPolitica) {
+      setErro("Você precisa aceitar a política de privacidade para continuar.");
       return;
     }
     if (formData.senha !== formData.confirmarSenha) { setErro("As senhas não coincidem."); return; }
@@ -259,10 +225,8 @@ export default function NovoUsuario() {
       setErro("A senha não atende aos requisitos de segurança.");
       return;
     }
-    
     setLoading(true);
     setErro(null);
-
     try {
       // O ID da foto já está garantido no formData.avatar pelo passo anterior
       const res = await fetch('/api/save-usuario', {
@@ -270,9 +234,7 @@ export default function NovoUsuario() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, fotoUrl: formData.avatar })
       });
-      
       const data = await res.json();
-      
       if (data.success) { 
         setSucesso(true); 
         setTimeout(() => window.location.href = '/', 4000); 
@@ -285,11 +247,9 @@ export default function NovoUsuario() {
       setLoading(false); 
     }
   };
-
   const inputClass = "w-full border border-white/5 rounded-full p-3.5 bg-white/5 text-white placeholder:text-white/20 focus:ring-1 focus:ring-blue-400 outline-none transition-all shadow-inner text-xs";
   const labelClass = "text-[12px] font-black text-blue-200 uppercase tracking-[0.2em] ml-4 flex items-center gap-2";
   const alertText = "text-red-400 text-[9px] font-black uppercase mt-1 ml-4 animate-pulse";
-
   if (sucesso) {
     return (
       <div className="h-screen relative font-sans antialiased flex flex-col overflow-hidden">
@@ -298,7 +258,6 @@ export default function NovoUsuario() {
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[4px]"></div>
           </div>
         ))}
-
         {/* HEADER */}
         <div className="relative z-10 p-8 md:p-12 flex items-center justify-between flex-shrink-0">
           <img src="/logo-juvrio.png" alt="Logo" className="h-16 w-auto drop-shadow-2xl" />
@@ -306,7 +265,6 @@ export default function NovoUsuario() {
             <ShieldCheck size={24} className="text-blue-300" />
           </div>
         </div>
-
         {/* CONTENT CARD */}
         <div className="relative z-10 flex-1 overflow-hidden flex flex-col items-center justify-center px-4 pb-6">
           <div className="w-full max-w-5xl h-[75vh] bg-white/4 backdrop-blur-[20px] border-t border-white/5 shadow-2xl rounded-[3.5rem] flex flex-col items-center justify-center p-12 text-center space-y-8 animate-in zoom-in duration-500">
@@ -325,7 +283,6 @@ export default function NovoUsuario() {
               </div>
             </div>
           </div>
-
           {/* FOOTER */}
           <p className="text-center text-white/30 text-[8px] uppercase tracking-[0.5em] mt-4 flex-shrink-0">
             © 2026 Secretaria Especial da Juventude Carioca - JUV-RIO
@@ -334,7 +291,6 @@ export default function NovoUsuario() {
       </div>
     );
   }
-
   return (
     <div className="h-screen relative font-sans antialiased flex flex-col overflow-hidden">
       {/* Estilos para a Scrollbar Vitrificada e "Totalmente Interna" */}
@@ -344,13 +300,11 @@ export default function NovoUsuario() {
         .glass-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); border-radius: 10px; }
         .glass-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
       `}</style>
-
       {backgrounds.map((src, index) => (
         <div key={src} className={`fixed inset-0 z-0 bg-cover bg-center transition-opacity duration-1000 ${bgIndex === index ? 'opacity-100' : 'opacity-0'}`} style={{ backgroundImage: `url('${src}')` }}>
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[4px]"></div>
         </div>
       ))}
-
       {/* HEADER - Fixo */}
       <div className="relative z-10 p-8 md:p-12 flex items-center justify-between flex-shrink-0">
         <img src="/logo-juvrio.png" alt="Logo" className="h-16 w-auto drop-shadow-2xl" />
@@ -364,24 +318,20 @@ export default function NovoUsuario() {
           </div>
         </div>
       </div>
-
       {/* CONTAINER CENTRAL - Card Estático de Tamanho Único */}
       <div className="relative z-10 flex-1 overflow-hidden flex flex-col items-center justify-center px-4 pb-6">
         <div className="w-full max-w-5xl h-[75vh] bg-white/4 backdrop-blur-[20px] border-t border-white/5 shadow-2xl rounded-[3.5rem] flex flex-col overflow-hidden relative">
-          
           {/* ÁREA DE SCROLL INTERNA */}
           <div className="flex-1 overflow-y-auto glass-scrollbar p-8 md:p-12 pr-14">
             <div className="text-center mb-10">
               <h2 className="text-white text-3xl font-black uppercase tracking-tighter drop-shadow-lg">{stepNames[step-1]}</h2>
               <p className="text-blue-200 text-[10px] font-bold uppercase tracking-[0.3em]">Preencha os campos marcados com *</p>
             </div>
-
-            {erro && erro !== "Você precisa aceitar os termos e a política de privacidade para continuar." && (
+            {erro && erro !== "Você precisa aceitar a política de privacidade para continuar." && (
               <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 text-red-200 rounded-2xl text-[10px] font-black uppercase text-center flex items-center justify-center gap-3 animate-in zoom-in">
                 <AlertCircle size={14} /> {erro}
               </div>
             )}
-
             {/* PASSO 1: DADOS PESSOAIS */}
             {step === 1 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
@@ -400,7 +350,6 @@ export default function NovoUsuario() {
                 </div>
               </div>
             )}
-
             {/* PASSO 2: CONTATO E ENDEREÇO */}
             {step === 2 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
@@ -416,7 +365,6 @@ export default function NovoUsuario() {
                     {formData.telefone.length > 0 && formData.telefone.length < 14 && <p className={`${alertText} absolute -bottom-4 left-0`}>Telefone incompleto.</p>}
                   </div>
                   <div className="space-y-1.5"><label className={labelClass}><InstagramIcon size={18} /> Instagram</label><input name="instagram" value={formData.instagram} onChange={handleChange} className={inputClass} placeholder="@usuario" /></div>
-                  
                   <div className="space-y-1.5 relative">
                     <label className={labelClass}><MapPin size={18} /> CEP *</label>
                     <input name="cep" value={formData.cep} onChange={handleChange} className={inputClass} placeholder="00000-000" />
@@ -434,7 +382,6 @@ export default function NovoUsuario() {
                 </div>
               </div>
             )}
-
             {/* PASSO 3: ATRIBUIÇÕES */}
             {step === 3 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
@@ -444,7 +391,6 @@ export default function NovoUsuario() {
                 </div>
               </div>
             )}
-
             {/* PASSO 4: FOTO DE PERFIL */}
             {step === 4 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
@@ -472,14 +418,12 @@ export default function NovoUsuario() {
                     )}
                     <input type="file" ref={fileInputRef} onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} className="hidden" accept="image/*" />
                   </div>
-
                   {fotoOriginal && (
                     <div className="w-full max-w-xs space-y-2 animate-in zoom-in">
                       <div className="flex items-center justify-between text-[10px] font-black text-blue-200 uppercase tracking-widest"><span>Ajustar Foto</span><span>{Math.round(zoom * 100)}%</span></div>
                       <div className="flex items-center gap-3"><Minus size={14} className="text-white/40" /><input type="range" min="1" max="3" step="0.01" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="flex-1 accent-blue-400" /><Plus size={14} className="text-white/40" /></div>
                     </div>
                   )}
-
                   <div className="w-full space-y-4">
                     <label className={labelClass}><Camera size={18} /> Ou escolha um Avatar</label>
                     <div className="relative group/carousel px-10">
@@ -495,7 +439,6 @@ export default function NovoUsuario() {
                 </div>
               </div>
             )}
-
             {/* PASSO 5: SENHA E CONCORDÂNCIA */}
             {step === 5 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
@@ -522,18 +465,14 @@ export default function NovoUsuario() {
                 </div>
               </div>
             )}
-
             <div className="mt-12 pt-8 border-t border-white/5">
               {step === 5 && (
                 <div className="space-y-3 mb-8 px-4 animate-in fade-in slide-in-from-bottom-4">
-                  <label className="flex items-center gap-3 cursor-pointer group"><input type="checkbox" checked={aceitoTermos} onChange={e => setAceitoTermos(e.target.checked)} className="w-4 h-4 rounded border-white/10 bg-white/5 text-blue-500 focus:ring-blue-400 transition-all" /><span className="text-[10px] font-bold text-white/60 uppercase tracking-widest group-hover:text-white transition-colors">Concordo com os <a href="#" className="underline text-blue-300 hover:text-blue-200">termos e condições de uso</a> do Sistema Integrado JUV-RIO *</span></label>
-                  <label className="flex items-center gap-3 cursor-pointer group"><input type="checkbox" checked={aceitoPrivacidade} onChange={e => setAceitoPrivacidade(e.target.checked)} className="w-4 h-4 rounded border-white/10 bg-white/5 text-blue-500 focus:ring-blue-400 transition-all" /><span className="text-[10px] font-bold text-white/60 uppercase tracking-widest group-hover:text-white transition-colors">Concordo com a <a href="#" className="underline text-blue-300 hover:text-blue-200">política de cookies e tratamento de dados</a> da JUV-RIO *</span></label>
+                  <label className="flex items-center gap-3 cursor-pointer group"><input type="checkbox" checked={aceitoPolitica} onChange={e => setAceitoPolitica(e.target.checked)} className="w-4 h-4 rounded border-white/10 bg-white/5 text-blue-500 focus:ring-blue-400 transition-all" /><span className="text-[10px] font-bold text-white/60 uppercase tracking-widest group-hover:text-white transition-colors">Li e concordo com a <a href="/politica-de-privacidade" target="_blank" rel="noopener noreferrer" className="underline text-blue-300 hover:text-blue-200">Política de Privacidade</a> e o tratamento de dados da JUV-RIO *</span></label>
                 </div>
               )}
-
               <div className="flex items-center justify-between">
                 {step > 1 ? (<button onClick={() => setStep(s => s - 1)} className="flex items-center gap-2 text-white/40 font-black text-[11px] uppercase hover:text-white transition-colors"><ChevronLeft size={20} /> Voltar</button>) : (<a href="/" className="text-white/40 font-black text-[11px] uppercase hover:text-white">Cancelar</a>)}
-                
                 {step < 5 ? (
                   <button 
                     onClick={handleNextStep} 
@@ -552,12 +491,10 @@ export default function NovoUsuario() {
                   </button>
                 )}
               </div>
-
-              {erro === "Você precisa aceitar os termos e a política de privacidade para continuar." && (<div className="mt-8 p-4 bg-red-500/10 border border-red-500/20 text-red-200 rounded-2xl text-[10px] font-black uppercase text-center flex items-center justify-center gap-3 animate-in zoom-in"><AlertCircle size={14} /> {erro}</div>)}
+              {erro === "Você precisa aceitar a política de privacidade para continuar." && (<div className="mt-8 p-4 bg-red-500/10 border border-red-500/20 text-red-200 rounded-2xl text-[10px] font-black uppercase text-center flex items-center justify-center gap-3 animate-in zoom-in"><AlertCircle size={14} /> {erro}</div>)}
             </div>
           </div>
         </div>
-
         <p className="text-center text-white/30 text-[8px] uppercase tracking-[0.5em] mt-4 flex-shrink-0">
           © 2026 Secretaria Especial da Juventude Carioca - JUV-RIO
         </p>

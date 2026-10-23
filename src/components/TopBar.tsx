@@ -1,11 +1,24 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Calendar, Clock, FolderOpen, UserRound, Settings, LogOut } from 'lucide-react';
+import { Calendar, Check, Clock, House, UserRound, Settings, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-// Lista de projetos/departamentos. Será definida depois; por ora um item padrão.
-const PROJETOS = [
-  { id: 'inicial', nome: 'Projeto Inicial' },
+// Página inicial do portal (destino do logo e do botão Home)
+const HOME = '/portal';
+
+// Opções de status do usuário (bolinha do avatar)
+type StatusUsuario = 'disponivel' | 'nao_disponivel' | 'em_reuniao';
+
+const CORES_STATUS: Record<StatusUsuario, string> = {
+  disponivel: 'bg-green-500',
+  nao_disponivel: 'bg-red-500',
+  em_reuniao: 'bg-yellow-500',
+};
+
+const STATUS_OPCOES: { id: StatusUsuario; label: string; cor: string; fundoSel: string; textoSel: string }[] = [
+  { id: 'disponivel', label: 'Disponível', cor: 'bg-green-500', fundoSel: 'bg-green-50', textoSel: 'text-green-600' },
+  { id: 'nao_disponivel', label: 'Não disponível', cor: 'bg-red-500', fundoSel: 'bg-red-50', textoSel: 'text-red-600' },
+  { id: 'em_reuniao', label: 'Em reunião', cor: 'bg-yellow-500', fundoSel: 'bg-yellow-50', textoSel: 'text-yellow-600' },
 ];
 
 // Resolve a foto do perfil (mesma lógica usada no portal admin)
@@ -24,12 +37,11 @@ function resolverFoto(fotoRaw: string) {
 
 export default function TopBar({ user }: { user: any }) {
   const [agora, setAgora] = useState(new Date());
-  const [projetoAtivo, setProjetoAtivo] = useState(PROJETOS[0]?.id || '');
   const [menuAberto, setMenuAberto] = useState(false);
+  const [statusUsuario, setStatusUsuario] = useState<StatusUsuario>('disponivel');
   const router = useRouter();
 
-  // Timers para o comportamento híbrido (hover com atraso + clique)
-  const abrirTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Timer de fechamento automático (menu aberto + mouse fora da foto e do balão)
   const fecharTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -37,28 +49,49 @@ export default function TopBar({ user }: { user: any }) {
     return () => clearInterval(timer);
   }, []);
 
-  // Limpa os timers ao desmontar
+  // Limpa o timer ao desmontar
   useEffect(() => {
     return () => {
-      if (abrirTimer.current) clearTimeout(abrirTimer.current);
       if (fecharTimer.current) clearTimeout(fecharTimer.current);
     };
   }, []);
 
-  const abrirMenu = () => {
+  // Carrega o status salvo em sessões anteriores
+  useEffect(() => {
+    const salvo = localStorage.getItem('status_juvrio');
+    if (salvo === 'disponivel' || salvo === 'nao_disponivel' || salvo === 'em_reuniao') {
+      setStatusUsuario(salvo);
+    }
+  }, []);
+
+  const cancelarFechamento = () => {
     if (fecharTimer.current) clearTimeout(fecharTimer.current);
-    abrirTimer.current = setTimeout(() => setMenuAberto(true), 120);
+    fecharTimer.current = null;
   };
 
-  const fecharMenu = () => {
-    if (abrirTimer.current) clearTimeout(abrirTimer.current);
-    fecharTimer.current = setTimeout(() => setMenuAberto(false), 250);
+  const agendarFechamento = () => {
+    cancelarFechamento();
+    fecharTimer.current = setTimeout(() => setMenuAberto(false), 3000); // 3s de cortesia
   };
 
   const alternarMenu = () => {
-    if (abrirTimer.current) clearTimeout(abrirTimer.current);
-    if (fecharTimer.current) clearTimeout(fecharTimer.current);
+    cancelarFechamento();
     setMenuAberto(prev => !prev);
+  };
+
+  const fecharMenuAgora = () => {
+    cancelarFechamento();
+    setMenuAberto(false);
+  };
+
+  const alterarStatus = (novo: StatusUsuario) => {
+    setStatusUsuario(novo);
+    localStorage.setItem('status_juvrio', novo);
+  };
+
+  const irParaHome = () => {
+    cancelarFechamento();
+    router.push(HOME);
   };
 
   const handleLogout = () => {
@@ -66,57 +99,66 @@ export default function TopBar({ user }: { user: any }) {
     router.push('/');
   };
 
-  const data = agora.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const data = agora.toLocaleDateString('pt-BR');
   const hora = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   return (
-    <header className="w-full bg-white/80 backdrop-blur-md border-b border-white shadow-sm z-30">
+    <header className="w-full bg-white/80 backdrop-blur-md shadow-sm z-30">
       <div className="h-16 px-6 flex items-center justify-between gap-6">
-        {/* LOGO JUV-RIO (posição do logo do SEI) */}
+        {/* LOGO JUV-RIO (clicável) + BOTÃO HOME */}
         <div className="flex items-center gap-3 flex-shrink-0">
-          <img src="/logo-juvrio.png" alt="JUV-RIO" className="h-9 w-auto brightness-0 opacity-80" />
-          <div className="hidden md:block leading-tight">
-            <p className="text-slate-800 font-black text-[11px] uppercase tracking-tight">Portal JUV-RIO</p>
-            <p className="text-slate-400 text-[8px] font-bold uppercase tracking-widest">Secretaria Especial da Juventude Carioca</p>
-          </div>
-        </div>
-
-        {/* DATA E HORA */}
-        <div className="hidden lg:flex items-center gap-5 text-slate-500">
-          <div className="flex items-center gap-2">
-            <Calendar size={14} className="text-blue-400" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">{data}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock size={14} className="text-blue-400" />
-            <span className="text-[10px] font-bold uppercase tracking-widest tabular-nums">{hora}</span>
-          </div>
-        </div>
-
-        {/* PROJETO + FOTO DE PERFIL COM MENU DE USUÁRIO */}
-        <div className="flex items-center gap-4 flex-shrink-0">
-          <div className="flex items-center gap-2 bg-blue-50/60 border border-white rounded-xl px-3 py-2">
-            <FolderOpen size={14} className="text-blue-400" />
-            <select
-              value={projetoAtivo}
-              onChange={(e) => setProjetoAtivo(e.target.value)}
-              className="bg-transparent text-[10px] font-black uppercase tracking-widest text-slate-700 outline-none cursor-pointer appearance-none"
-            >
-              {PROJETOS.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-            </select>
-            <ChevronDown size={14} className="text-blue-400" />
-          </div>
-
-          {/* AVATAR + BALÃO (hover abre, clique alterna, sai fecha) */}
-          <div
-            className="relative"
-            onMouseEnter={abrirMenu}
-            onMouseLeave={fecharMenu}
+          <button
+            type="button"
+            onClick={irParaHome}
+            aria-label="Ir para a página inicial"
+            title="Início"
+            className="cursor-pointer transition-opacity hover:opacity-80"
           >
+            <img src="/logo-juvrio-colorida-horizontal.png" alt="JUV-RIO" className="h-9 w-auto" />
+          </button>
+
+          {/* BOTÃO HOME (pronto para futuras implementações) */}
+          <button
+            type="button"
+            onClick={irParaHome}
+            aria-label="Início"
+            title="Início"
+            className="w-9 h-9 rounded-xl border border-sky-100 shadow-sm bg-sky-50/70 flex items-center justify-center cursor-pointer hover:bg-sky-100/70 hover:ring-2 hover:ring-sky-400 transition-all"
+          >
+            <House size={16} className="text-sky-500" />
+          </button>
+        </div>
+
+        {/* SAUDAÇÃO + DATA/HORA + FOTO DE PERFIL COM MENU DE USUÁRIO */}
+        <div className="flex items-center gap-4 flex-shrink-0">
+          {/* DATA E HORA (empilhada, sem caixa; ícones à direita, junto ao separador) */}
+          <div className="hidden lg:flex flex-col justify-center gap-0.5 leading-tight">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 tabular-nums">{data}</span>
+              <Calendar size={12} className="text-sky-500" />
+            </div>
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 tabular-nums">{hora}</span>
+              <Clock size={12} className="text-sky-500" />
+            </div>
+          </div>
+
+          {/* SEPARADOR VERTICAL (mesmo gradiente do rodapé da TopBar) */}
+          <div className="hidden lg:block w-[3px] h-8 rounded-full bg-gradient-to-b from-sky-400 via-blue-500 to-blue-600" />
+
+          {/* SAUDAÇÃO AMIGÁVEL */}
+          <p className="hidden sm:block text-[11px] font-bold text-slate-500">
+            Olá, <span className="font-black text-blue-900">{user?.nome?.split(' ')[0] || 'Usuário'}</span>
+          </p>
+
+          {/* AVATAR + BALÃO (abre no clique; fecha no 2º clique; mouse fora fecha em 3s) */}
+          <div className="relative">
             <button
               type="button"
               onClick={alternarMenu}
-              className="w-10 h-10 rounded-xl overflow-hidden border border-white shadow-sm bg-blue-100 flex items-center justify-center flex-shrink-0 ring-offset-2 ring-offset-white transition-shadow hover:ring-2 hover:ring-blue-300 cursor-pointer"
+              onMouseEnter={cancelarFechamento}
+              onMouseLeave={() => { if (menuAberto) agendarFechamento(); }}
+              className={`w-10 h-10 rounded-xl overflow-hidden border border-sky-100 shadow-sm bg-blue-100 flex items-center justify-center flex-shrink-0 ring-offset-2 ring-offset-white transition-shadow hover:ring-2 hover:ring-sky-400 ${menuAberto ? 'ring-2 ring-sky-400' : ''}`}
               aria-label="Menu do usuário"
             >
               {user?.foto ? (
@@ -131,16 +173,45 @@ export default function TopBar({ user }: { user: any }) {
               )}
             </button>
 
+            {/* Indicador de status (cor conforme escolha do usuário) */}
+            <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white z-10 pointer-events-none ${CORES_STATUS[statusUsuario]}`} />
+
             {menuAberto && (
               <>
                 {/* Overlay invisível: fecha ao clicar fora */}
-                <div className="fixed inset-0 z-40" onClick={fecharMenu} />
-                <div className="absolute right-0 top-full mt-3 z-50 w-56 bg-white rounded-2xl border border-blue-50 shadow-xl p-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="fixed inset-0 z-40" onClick={fecharMenuAgora} />
+                <div
+                  className="absolute right-0 top-full mt-3 z-50 w-56 bg-white rounded-2xl border border-blue-50 shadow-xl p-2 animate-in fade-in slide-in-from-top-2 duration-200"
+                  onMouseEnter={cancelarFechamento}
+                  onMouseLeave={agendarFechamento}
+                >
                   {/* Cabeçalho discreto com o nome do usuário logado */}
                   <div className="px-3 py-2.5 border-b border-slate-50 mb-1">
                     <p className="text-slate-800 font-black text-[10px] uppercase tracking-widest truncate">{user?.nome || 'Usuário'}</p>
                     <p className="text-slate-400 text-[8px] font-bold uppercase tracking-widest truncate">{user?.Email || user?.email || ''}</p>
                   </div>
+
+                  {/* SELETOR DE STATUS */}
+                  <div className="px-1 pb-1 mb-1 border-b border-slate-50">
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-3 py-1">Status</p>
+                    {STATUS_OPCOES.map(op => (
+                      <button
+                        key={op.id}
+                        type="button"
+                        onClick={() => alterarStatus(op.id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-left transition-all cursor-pointer ${
+                          statusUsuario === op.id
+                            ? `${op.fundoSel} ${op.textoSel}`
+                            : 'text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${op.cor}`} />
+                        {op.label}
+                        {statusUsuario === op.id && <Check size={12} className="ml-auto" />}
+                      </button>
+                    ))}
+                  </div>
+
                   <MenuBotao icon={<UserRound size={16} />} label="Editar Perfil" />
                   <MenuBotao icon={<Settings size={16} />} label="Configurações" />
                   <div className="h-px bg-slate-100 my-1" />
@@ -151,6 +222,9 @@ export default function TopBar({ user }: { user: any }) {
           </div>
         </div>
       </div>
+
+      {/* ACENTO GRADIENTE (eco do brasão da logo) */}
+      <div className="h-[3px] w-full bg-gradient-to-r from-sky-400 via-blue-500 to-blue-600" />
     </header>
   );
 }
