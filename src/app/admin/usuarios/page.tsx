@@ -3,18 +3,43 @@ import { useState, useEffect } from 'react';
 import { 
   Search, Filter, UserCheck, Edit3, CheckCircle2, 
   Loader2, X, UserX, ShieldCheck, Mail, Briefcase, Info,
-  Clock, ChevronDown
+  Clock, ChevronDown, Compass
 } from 'lucide-react';
 // Detecta os perfis de acesso dinamicamente a partir das chaves retornadas pelo GET.
 // A API monta as chaves na ORDEM dos cabeçalhos da planilha (coluna A em diante).
 // Os perfis de acesso começam na coluna V (22ª coluna = índice 21), portanto tudo
-// que estiver a partir do índice 21 é um perfil. Campos cadastrais anteriores não entram.
+// que estiver a partir do índice 21 é um perfil — EXCETO "LANDING PRIMÁRIA" (coluna W),
+// que é uma coluna de configuração (texto) controlada pelo dropdown dedicado, nunca por checkbox.
 function detectarPerfis(lista: any[]): string[] {
   if (lista.length === 0) return [];
   // Object.keys preserva a ordem de inserção, que é a ordem das colunas da planilha
   const chaves = Object.keys(lista[0]);
   // Coluna V = índice 21 (0-based). Daí em diante: perfis de acesso.
-  return chaves.slice(21).filter(k => k && k.trim() !== '');
+  return chaves
+    .slice(21)
+    .filter(k => k && k.trim() !== '' && k.trim().toUpperCase() !== 'LANDING PRIMÁRIA');
+}
+// Opções do dropdown "Landing Primária" = cabeçalhos APÓS a coluna "LANDING PRIMÁRIA"
+// (Master + departamentos). Departamento novo criado na planilha aparece aqui sozinho,
+// sem alterar código. Se a coluna de Landing Primária não existir, só "(Automático)" fica.
+function detectarLandingPrimarias(lista: any[]): string[] {
+  if (lista.length === 0) return [];
+  const chaves = Object.keys(lista[0]);
+  const idxLanding = chaves.findIndex(k => k.trim().toUpperCase() === 'LANDING PRIMÁRIA');
+  if (idxLanding < 0) return [];
+  return chaves.slice(idxLanding + 1).filter(k => k && k.trim() !== '');
+}
+// Localiza a chave REAL da coluna "LANDING PRIMÁRIA" no objeto do usuário,
+// tolerando espaços extras e caixa diferente no cabeçalho da planilha
+// (o acesso por chave literal exata falharia silenciosamente nesses casos).
+function encontrarChaveLandingPrimaria(usuario: any): string | null {
+  if (!usuario) return null;
+  return Object.keys(usuario).find(k => k && k.trim().toUpperCase() === 'LANDING PRIMÁRIA') || null;
+}
+// Valor da Landing Primária gravado na planilha para o usuário (vazio = automático)
+function valorLandingPrimaria(usuario: any): string {
+  const chave = encontrarChaveLandingPrimaria(usuario);
+  return chave ? String(usuario[chave] || '').trim() : '';
 }
 export default function GestaoUsuarios() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
@@ -27,7 +52,12 @@ export default function GestaoUsuarios() {
   const [mappingFuncoes, setMappingFuncoes] = useState<Record<string, string[]>>({});
   // Estados para Perfis de Acesso Dinâmicos
   const [perfisDisponiveis, setPerfisDisponiveis] = useState<string[]>([]);
+  const [landingDisponiveis, setLandingDisponiveis] = useState<string[]>([]);
   const [dropdownPerfisAberto, setDropdownPerfisAberto] = useState(false);
+  // Estado dedicado da Landing Primária (isolado do objeto do usuário para
+  // nunca depender da chave literal do cabeçalho — evita "esquecer" ao reabrir
+  // e evita apagar a coluna W ao salvar outros campos)
+  const [landingPrimariaSel, setLandingPrimariaSel] = useState('');
   useEffect(() => {
     fetchUsuarios();
     fetchConfigs();
@@ -84,6 +114,7 @@ export default function GestaoUsuarios() {
       const lista = Array.isArray(data) ? data : [];
       setUsuarios(lista);
       setPerfisDisponiveis(detectarPerfis(lista));
+      setLandingDisponiveis(detectarLandingPrimarias(lista));
     } catch (e) {
       console.error("Erro ao buscar usuários:", e);
     } finally {
@@ -91,13 +122,21 @@ export default function GestaoUsuarios() {
     }
   };
   const handleSalvar = async () => {
+    // Monta o objeto de perfis dinamicamente a partir dos perfis detectados
+    const perfis: Record<string, boolean> = {};
+    perfisDisponiveis.forEach(perfil => {
+      perfis[perfil] = usuarioSelecionado[perfil] === 'SIM';
+    });
+    // REGRA DE INTEGRIDADE: Landing Primária exige acesso ao departamento correspondente.
+    // Se o Admin definiu uma landing sem o acesso concedido, bloqueia ANTES de gravar.
+    if (landingPrimariaSel && !perfisDisponiveis.some(
+      p => p.trim().toUpperCase() === landingPrimariaSel.trim().toUpperCase() && perfis[p] === true
+    )) {
+      alert(`Não foi possível salvar: para definir "${landingPrimariaSel}" como Landing Primária, o usuário precisa ter acesso ao departamento "${landingPrimariaSel}". Conceda o acesso em "Perfis de Acesso" e salve novamente.`);
+      return;
+    }
     setSalvando(true);
     try {
-      // Monta o objeto de perfis dinamicamente a partir dos perfis detectados
-      const perfis: Record<string, boolean> = {};
-      perfisDisponiveis.forEach(perfil => {
-        perfis[perfil] = usuarioSelecionado[perfil] === 'SIM';
-      });
       const res = await fetch('/api/admin/usuarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -106,20 +145,36 @@ export default function GestaoUsuarios() {
           setor: usuarioSelecionado.Setor,
           funcao: usuarioSelecionado['Função'],
           perfis,
+          landingPrimaria: landingPrimariaSel,
           status: usuarioSelecionado.Status === 'PENDENTE' ? 'ATIVO' : usuarioSelecionado.Status
         })
       });
+      const data = await res.json().catch(() => ({} as any));
       if (res.ok) {
+        // Rede de segurança do backend: landing retirada por falta de acesso ao departamento
+        if (data?.landingResetada) {
+          alert('A Landing Primária foi retirada automaticamente: o usuário precisa ter acesso ao departamento correspondente para mantê-la. Defina uma nova Landing Primária, se desejar.');
+        }
         setUsuarioSelecionado(null);
+        setLandingPrimariaSel('');
         fetchUsuarios();
       } else {
-        alert("Erro ao salvar alterações.");
+        alert(data?.error || "Erro ao salvar alterações.");
       }
     } catch (e) {
       alert("Erro de conexão.");
     } finally {
       setSalvando(false);
     }
+  };
+  // Abre o modal de edição pré-carregando a Landing Primária atual do usuário:
+  // o valor bruto da planilha é casado com a opção canônica do dropdown
+  // (comparação normalizada), garantindo que o select exiba o valor correto.
+  const abrirEdicao = (user: any) => {
+    const valorBruto = valorLandingPrimaria(user);
+    const opcaoCanonica = landingDisponiveis.find(l => l.trim().toUpperCase() === valorBruto.toUpperCase());
+    setLandingPrimariaSel(opcaoCanonica || valorBruto);
+    setUsuarioSelecionado({ ...user });
   };
   const usuariosFiltrados = usuarios.filter(u => 
     u.Nome?.toLowerCase().includes(filtro.toLowerCase()) || 
@@ -209,7 +264,7 @@ export default function GestaoUsuarios() {
                   </td>
                   <td className="px-8 py-4 text-right">
                     <button 
-                      onClick={() => setUsuarioSelecionado({...user})}
+                      onClick={() => abrirEdicao(user)}
                       className="p-2.5 bg-white border border-blue-100 text-blue-500 rounded-xl shadow-sm hover:bg-blue-500 hover:text-white transition-all active:scale-95 group-hover:shadow-md"
                     >
                       <Edit3 size={16} />
@@ -294,6 +349,20 @@ export default function GestaoUsuarios() {
                   </button>
                 </div>
               </div>
+              {/* LANDING PRIMÁRIA (DROPDOWN DEDICADO — GRAVA TEXTO NA COLUNA W;
+                  VALOR PRÉ-CARREGADO VIA ESTADO PRÓPRIO, NUNCA "ESQUECE";
+                  PERDE O ACESSO AO DEPARTAMENTO => VOLTA PARA (AUTOMÁTICO)) */}
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2"><Compass size={12} /> Landing Primária</label>
+                <select
+                  className={inputSelectClass}
+                  value={landingPrimariaSel}
+                  onChange={(e) => setLandingPrimariaSel(e.target.value)}
+                >
+                  <option value="">(Automático)</option>
+                  {landingDisponiveis.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
               {/* SELEÇÃO DE PERFIS DE ACESSO (LISTA SUSPENSA DINÂMICA COM CHECKBOXES) */}
               <div className="space-y-4">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2"><ShieldCheck size={12} /> Perfis de Acesso</label>
@@ -325,6 +394,11 @@ export default function GestaoUsuarios() {
                             const valor = e.target.checked ? 'SIM' : 'NÃO';
                             const novosPerfis: any = { ...usuarioSelecionado };
                             perfisDisponiveis.forEach(p => { novosPerfis[p] = valor; });
+                            // Ao desmarcar todos, a Landing Primária selecionada também
+                            // volta para "(Automático)" — refletindo o que será gravado
+                            if (valor === 'NÃO' && landingPrimariaSel && perfisDisponiveis.some(p => p.trim().toUpperCase() === landingPrimariaSel.trim().toUpperCase())) {
+                              setLandingPrimariaSel('');
+                            }
                             setUsuarioSelecionado(novosPerfis);
                           }}
                           className="w-4 h-4 accent-blue-500 cursor-pointer"
@@ -341,10 +415,18 @@ export default function GestaoUsuarios() {
                           <input
                             type="checkbox"
                             checked={usuarioSelecionado[perfil] === 'SIM'}
-                            onChange={() => setUsuarioSelecionado({
-                              ...usuarioSelecionado,
-                              [perfil]: usuarioSelecionado[perfil] === 'SIM' ? 'NÃO' : 'SIM'
-                            })}
+                            onChange={() => {
+                              const novoValor = usuarioSelecionado[perfil] === 'SIM' ? 'NÃO' : 'SIM';
+                              // Ao perder acesso ao departamento que é a Landing Primária
+                              // selecionada, o dropdown volta para "(Automático)" na hora
+                              if (novoValor === 'NÃO' && landingPrimariaSel && perfil.trim().toUpperCase() === landingPrimariaSel.trim().toUpperCase()) {
+                                setLandingPrimariaSel('');
+                              }
+                              setUsuarioSelecionado({
+                                ...usuarioSelecionado,
+                                [perfil]: novoValor
+                              });
+                            }}
                             className="w-4 h-4 accent-blue-500 cursor-pointer"
                           />
                         </label>
