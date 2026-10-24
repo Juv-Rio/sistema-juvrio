@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
 import TopBar from '@/components/TopBar';
-import { podeAcessarRota, resolverRotaInicial, ROTA_SEM_LOTACAO } from '@/lib/landing';
+import CarregandoJuvrio from '@/components/CarregandoJuvrio';
+import { podeAcessarRota, ROTA_SEM_LOTACAO } from '@/lib/landing';
 
 /**
  * Layout comum a TODAS as landings de departamento.
@@ -70,7 +70,7 @@ export default function LandingLayout({
   useEffect(() => {
     if (!user) return;
 
-    // A própria página de "sem acesso" não deve redirecionar para si mesma.
+    // A própria página de destino do bloqueio não redireciona para si mesma.
     if (pathname === ROTA_SEM_LOTACAO) return;
 
     if (!podeAcessarRota(pathname, user)) {
@@ -78,15 +78,10 @@ export default function LandingLayout({
     }
   }, [user, pathname, router]);
 
+  // Enquanto a sessão está sendo lida, ou enquanto o usuário (inválido) está
+  // sendo redirecionado, a tela de carregamento ocupa a área inteira.
   if (carregando || !user) {
-    return (
-      <div className="h-screen w-full bg-[#F0F7FF] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="animate-spin text-blue-500" size={36} />
-        <p className="text-blue-400 font-black text-[10px] uppercase tracking-[0.3em]">
-          Carregando...
-        </p>
-      </div>
-    );
+    return <CarregandoJuvrio mensagem="Carregando" />;
   }
 
   return (
