@@ -24,3 +24,50 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+@keyframes varredura {
+  0%   { transform: translateX(-160%); }
+  100% { transform: translateX(320%); }
+}
+/* ---------- Carregamento (sigla mascarada) ---------- */
+sigla-mascarada {
+  background-image: linear-gradient(
+    100deg,
+    #38bdf8 0%,
+    #2563eb 30%,
+    #e0f2fe 48%,
+    #ffffff 52%,
+    #2563eb 70%,
+    #38bdf8 100%
+  );
+  background-size: 260% 100%;
+  -webkit-mask-image: url('/sigla_juv.png');
+  mask-image: url('/sigla_juv.png');
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  animation: varredura-sigla 2.6s linear infinite;
+}
+
+@keyframes varredura-sigla {
+  0%   { background-position: 160% 0; }
+  100% { background-position: -60% 0; }
+}
+
+@keyframes respirar {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.04); opacity: 0.85; }
+}
+
+.animate-respirar {
+  animation: respirar 2.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sigla-mascarada,
+  .animate-respirar {
+    animation: none;
+  }
+}
