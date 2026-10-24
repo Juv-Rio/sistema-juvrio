@@ -109,7 +109,7 @@ export default function TopBar({ user }: { user: any }) {
       <div className="h-16 px-6 flex items-center justify-between gap-6">
 
         {/* LOGO JUV-RIO (clicável) + BOTÃO HOME */}
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           <button
             type="button"
             onClick={irParaHome}
@@ -133,7 +133,7 @@ export default function TopBar({ user }: { user: any }) {
         </div>
 
         {/* SAUDAÇÃO + DATA/HORA + FOTO DE PERFIL COM MENU DE USUÁRIO */}
-        <div className="flex items-center gap-4 flex-shrink-0">
+        <div className="flex items-center gap-4 shrink-0">
 
           {/* DATA E HORA (empilhada, sem caixa; ícones à direita, junto ao separador) */}
           <div className="hidden lg:flex flex-col justify-center gap-0.5 leading-tight">
@@ -148,7 +148,7 @@ export default function TopBar({ user }: { user: any }) {
           </div>
 
           {/* SEPARADOR VERTICAL (mesmo gradiente do rodapé da TopBar) */}
-          <div className="hidden lg:block w-[3px] h-8 rounded-full bg-gradient-to-b from-sky-400 via-blue-500 to-blue-600" />
+          <div className="hidden lg:block w-0.75 h-8 rounded-full bg-linear-to-b from-sky-400 via-blue-500 to-blue-600" />
 
           {/* SAUDAÇÃO AMIGÁVEL */}
           <p className="hidden sm:block text-[11px] font-bold text-slate-500">
@@ -162,7 +162,7 @@ export default function TopBar({ user }: { user: any }) {
               onClick={alternarMenu}
               onMouseEnter={cancelarFechamento}
               onMouseLeave={() => { if (menuAberto) agendarFechamento(); }}
-              className={`w-10 h-10 rounded-xl overflow-hidden border border-sky-100 shadow-sm bg-blue-100 flex items-center justify-center flex-shrink-0 ring-offset-2 ring-offset-white transition-shadow hover:ring-2 hover:ring-sky-400 ${menuAberto ? 'ring-2 ring-sky-400' : ''}`}
+              className={`w-10 h-10 rounded-xl overflow-hidden border border-sky-100 shadow-sm bg-blue-100 flex items-center justify-center shrink-0 ring-offset-2 ring-offset-white transition-shadow hover:ring-2 hover:ring-sky-400 ${menuAberto ? 'ring-2 ring-sky-400' : ''}`}
               aria-label="Menu do usuário"
             >
               {user?.foto ? (
@@ -210,7 +210,7 @@ export default function TopBar({ user }: { user: any }) {
                             : 'text-slate-500 hover:bg-slate-50'
                         }`}
                       >
-                        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${op.cor}`} />
+                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${op.cor}`} />
                         {op.label}
                         {statusUsuario === op.id && <Check size={12} className="ml-auto" />}
                       </button>
@@ -229,7 +229,7 @@ export default function TopBar({ user }: { user: any }) {
       </div>
 
       {/* ACENTO GRADIENTE (eco do brasão da logo) */}
-      <div className="h-[3px] w-full bg-gradient-to-r from-sky-400 via-blue-500 to-blue-600" />
+      <div className="h-0.75 w-full bg-linear-to-r from-sky-400 via-blue-500 to-blue-600" />
     </header>
   );
 }

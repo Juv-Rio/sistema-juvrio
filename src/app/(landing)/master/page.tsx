@@ -47,7 +47,7 @@ export default function LandingMaster() {
       </div>
 
       {/* CARTÃO DE BOAS-VINDAS */}
-      <div className="p-8 bg-white/70 backdrop-blur-md border border-white rounded-[1.5rem] shadow-sm space-y-3">
+      <div className="p-8 bg-white/70 backdrop-blur-md border border-white rounded-3xl shadow-sm space-y-3">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500">
           Bem-vindo
         </p>

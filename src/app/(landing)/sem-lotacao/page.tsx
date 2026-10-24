@@ -24,11 +24,11 @@ export default function SemLotacao() {
 
   return (
     <div className="h-screen w-full relative overflow-hidden flex items-center justify-center font-sans antialiased bg-[#F0F7FF] p-6">
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-50 via-white to-blue-50" />
+      <div className="absolute inset-0 z-0 bg-linear-to-br from-blue-50 via-white to-blue-50" />
 
       <div className="relative z-10 w-full max-w-lg">
 
-        <div className="p-10 bg-white/70 backdrop-blur-md border border-white rounded-[1.5rem] shadow-sm space-y-6 text-center">
+        <div className="p-10 bg-white/70 backdrop-blur-md border border-white rounded-3xl shadow-sm space-y-6 text-center">
 
           {/* ÍCONE */}
           <div className="flex justify-center">

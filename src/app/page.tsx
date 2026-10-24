@@ -168,7 +168,7 @@ export default function Login() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full border border-white/5 rounded-full p-3.5 bg-white/5 text-white placeholder:text-white/20 focus:ring-1 focus:ring-blue-400 outline-none transition-all shadow-inner text-xs h-[46px]"
+                    className="w-full border border-white/5 rounded-full p-3.5 bg-white/5 text-white placeholder:text-white/20 focus:ring-1 focus:ring-blue-400 outline-none transition-all shadow-inner text-xs h-11.5"
                     placeholder="exemplo@juvrio.com.br"
                   />
                 </div>
@@ -184,7 +184,7 @@ export default function Login() {
                     required
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
-                    className="w-full border border-white/5 rounded-full p-3.5 bg-white/5 text-white placeholder:text-white/20 focus:ring-1 focus:ring-blue-400 outline-none transition-all shadow-inner text-xs h-[46px]"
+                    className="w-full border border-white/5 rounded-full p-3.5 bg-white/5 text-white placeholder:text-white/20 focus:ring-1 focus:ring-blue-400 outline-none transition-all shadow-inner text-xs h-11.5"
                     placeholder="••••••••"
                   />
                   <button 
@@ -222,7 +222,7 @@ export default function Login() {
                 <button 
                   type="submit" 
                   disabled={carregando}
-                  className="w-full bg-white text-[#001D4A] py-3.5 rounded-full font-black hover:bg-blue-50 shadow-lg transition-all active:scale-95 uppercase text-[9px] tracking-[0.2em] flex items-center justify-center gap-2 disabled:bg-slate-400 h-[46px]"
+                  className="w-full bg-white text-[#001D4A] py-3.5 rounded-full font-black hover:bg-blue-50 shadow-lg transition-all active:scale-95 uppercase text-[9px] tracking-[0.2em] flex items-center justify-center gap-2 disabled:bg-slate-400 h-11.5"
                 >
                   {carregando ? <Loader2 className="animate-spin" size={14} /> : "LOGIN"}
                 </button>

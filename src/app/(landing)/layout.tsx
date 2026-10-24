@@ -71,7 +71,7 @@ export default function LandingLayout({
 
   return (
     <div className="h-screen w-full relative overflow-hidden flex flex-col font-sans antialiased bg-[#F0F7FF]">
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-50 via-white to-blue-50" />
+      <div className="absolute inset-0 z-0 bg-linear-to-br from-blue-50 via-white to-blue-50" />
 
       <TopBar user={user} />
 
