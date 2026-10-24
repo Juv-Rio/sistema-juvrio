@@ -4,6 +4,7 @@ import {
   Lock, Mail, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2, UserPlus, MapPin, AlertCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { resolverRotaInicial } from '@/lib/landing';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -62,19 +63,11 @@ export default function Login() {
         // SALVA A SESSÃO NO NAVEGADOR
         localStorage.setItem('user_juvrio', JSON.stringify(data.user));
         // BLOQUEIA USUÁRIOS INATIVOS
-        if (data.user.Status === 'INATIVO') {
+        if (data.user.status === 'INATIVO') {
           setErro('Usuário sem permissão de acesso.');
         } else {
-          // REDIRECIONA CONFORME O PERFIL: Master primeiro, Admin depois
-          const perfil = data.user.perfil || {};
-          const temMaster = perfil.Master === true || perfil.Master === 'SIM';
-          if (temMaster) {
-            router.push('/portal');
-          } else if (perfil.Admin) {
-            router.push('/admin');
-          } else {
-            setErro('Usuário sem permissão de acesso.');
-          }
+          // REDIRECIONA CONFORME A LANDING PRIMÁRIA (Admin tem precedência)
+          router.push(resolverRotaInicial(data.user));
         }
       } else {
         setErro(data.error || 'E-mail ou senha incorretos.');

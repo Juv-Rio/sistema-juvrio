@@ -1,10 +1,9 @@
 'use client';
+
 import { useEffect, useRef, useState } from 'react';
 import { Calendar, Check, Clock, House, UserRound, Settings, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
-// Página inicial do portal (destino do logo e do botão Home)
-const HOME = '/portal';
+import { resolverRotaInicial } from '@/lib/landing';
 
 // Opções de status do usuário (bolinha do avatar)
 type StatusUsuario = 'disponivel' | 'nao_disponivel' | 'em_reuniao';
@@ -24,6 +23,7 @@ const STATUS_OPCOES: { id: StatusUsuario; label: string; cor: string; fundoSel: 
 // Resolve a foto do perfil (mesma lógica usada no portal admin)
 function resolverFoto(fotoRaw: string) {
   if (!fotoRaw) return null;
+
   if (fotoRaw.includes('drive.google.com')) {
     const id = fotoRaw.split('id=')[1]?.split('&')[0]
       || fotoRaw.split('/d/')[1]?.split('/')[0]
@@ -31,7 +31,9 @@ function resolverFoto(fotoRaw: string) {
       || '';
     if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w200`;
   }
+
   if (fotoRaw.startsWith('http')) return fotoRaw;
+
   return `https://drive.google.com/thumbnail?id=${fotoRaw}&sz=w200`;
 }
 
@@ -91,7 +93,7 @@ export default function TopBar({ user }: { user: any }) {
 
   const irParaHome = () => {
     cancelarFechamento();
-    router.push(HOME);
+    router.push(resolverRotaInicial(user));
   };
 
   const handleLogout = () => {
@@ -105,6 +107,7 @@ export default function TopBar({ user }: { user: any }) {
   return (
     <header className="w-full bg-white/80 backdrop-blur-md shadow-sm z-30">
       <div className="h-16 px-6 flex items-center justify-between gap-6">
+
         {/* LOGO JUV-RIO (clicável) + BOTÃO HOME */}
         <div className="flex items-center gap-3 flex-shrink-0">
           <button
@@ -131,6 +134,7 @@ export default function TopBar({ user }: { user: any }) {
 
         {/* SAUDAÇÃO + DATA/HORA + FOTO DE PERFIL COM MENU DE USUÁRIO */}
         <div className="flex items-center gap-4 flex-shrink-0">
+
           {/* DATA E HORA (empilhada, sem caixa; ícones à direita, junto ao separador) */}
           <div className="hidden lg:flex flex-col justify-center gap-0.5 leading-tight">
             <div className="flex items-center justify-between gap-1.5">
@@ -180,6 +184,7 @@ export default function TopBar({ user }: { user: any }) {
               <>
                 {/* Overlay invisível: fecha ao clicar fora */}
                 <div className="fixed inset-0 z-40" onClick={fecharMenuAgora} />
+
                 <div
                   className="absolute right-0 top-full mt-3 z-50 w-56 bg-white rounded-2xl border border-blue-50 shadow-xl p-2 animate-in fade-in slide-in-from-top-2 duration-200"
                   onMouseEnter={cancelarFechamento}
