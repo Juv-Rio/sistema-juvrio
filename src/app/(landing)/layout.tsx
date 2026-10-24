@@ -1,17 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import TopBar from '@/components/TopBar';
+import { podeAcessarRota, resolverRotaInicial, ROTA_SEM_LOTACAO } from '@/lib/landing';
 
 /**
  * Layout comum a TODAS as landings de departamento.
  *
  * Responsabilidades:
- *  1. Validar a sessão (guard) — uma vez, para todas as landings.
- *  2. Renderizar a moldura visual (fundo + gradiente).
- *  3. Renderizar a TopBar, que é exclusiva das landings.
+ *  1. Validar a sessão (guard).                    -> "estou autenticado?"
+ *  2. Validar a permissão na Área Gerencial atual. -> "posso estar aqui?"
+ *  3. Renderizar a moldura visual (fundo + gradiente).
+ *  4. Renderizar a TopBar, que é exclusiva das landings.
  *
  * O conteúdo de cada departamento fica em <page.tsx>, que é livre
  * para definir seus próprios cards, cores e módulos.
@@ -22,9 +24,11 @@ export default function LandingLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [carregando, setCarregando] = useState(true);
 
+  // 1) GUARD DE SESSÃO: quem é você?
   useEffect(() => {
     const sessao = localStorage.getItem('user_juvrio');
 
@@ -58,7 +62,23 @@ export default function LandingLayout({
     }
   }, [router]);
 
-  if (carregando) {
+  // 2) GUARD DE PERMISSÃO: você pode estar nesta Área Gerencial?
+  //
+  //    Só roda depois que o usuário está disponível. Como o `carregando`
+  //    bloqueia a renderização do conteúdo, a verificação nunca acontece
+  //    com `user === null` — o que expulsaria todo mundo no primeiro render.
+  useEffect(() => {
+    if (!user) return;
+
+    // A própria página de "sem acesso" não deve redirecionar para si mesma.
+    if (pathname === ROTA_SEM_LOTACAO) return;
+
+    if (!podeAcessarRota(pathname, user)) {
+      router.replace(ROTA_SEM_LOTACAO);
+    }
+  }, [user, pathname, router]);
+
+  if (carregando || !user) {
     return (
       <div className="h-screen w-full bg-[#F0F7FF] flex flex-col items-center justify-center gap-4">
         <Loader2 className="animate-spin text-blue-500" size={36} />
