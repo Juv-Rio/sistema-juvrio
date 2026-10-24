@@ -1,18 +1,26 @@
 /**
  * Mapa de departamentos -> landing page.
  *
- * Esta é a ÚNICA fonte de verdade sobre:
- *   1. Quais destinos existem (rota de cada departamento).
+ * IMPORTANTE: este arquivo NÃO declara mais a lista de departamentos.
+ * Ele DERIVA tudo de `DEPARTAMENTOS_REGISTRADOS` (lib/departamentos.ts),
+ * que é a ÚNICA fonte de verdade estrutural do sistema.
+ *
+ * Aqui vivem apenas as REGRAS:
+ *   1. Como converter a rota em departamento.
  *   2. Quem pode acessar cada destino (coluna de perfil correspondente).
+ *   3. Para onde o usuário vai ao entrar.
  *
- * A coluna LANDING PRIMÁRIA da planilha diz QUAL é o departamento inicial
- * do usuário. As colunas de perfil (SIM/NÃO) dizem QUAIS ele pode acessar.
- *
- * REGRA DE MANUTENÇÃO: ao criar um departamento novo,
- *   1. crie a pasta em src/app/(landing)/<slug>/page.tsx
- *   2. adicione a entrada correspondente em DEPARTAMENTOS
- * Se a entrada não existir, o usuário cai em ROTA_SEM_LOTACAO (nunca em 404).
+ * REGRA DE MANUTENÇÃO: ao publicar uma área nova, NÃO edite este arquivo.
+ *   1. crie a pasta src/app/(landing)/<slug>/page.tsx
+ *   2. adicione a entrada em DEPARTAMENTOS_REGISTRADOS
  */
+
+import {
+  DEPARTAMENTOS_REGISTRADOS,
+  rotaDoDepartamento,
+  chavePermissaoDe,
+  type DepartamentoRegistrado,
+} from './departamentos';
 
 /** Rota exibida quando o usuário não tem departamento válido. */
 export const ROTA_SEM_LOTACAO = '/sem-lotacao';
@@ -24,27 +32,31 @@ export const ROTA_ADMIN = '/admin';
 export const ROTA_SEM_ACESSO = '/sem-acesso';
 
 export interface Departamento {
-  /** Valor literal esperado na coluna LANDING PRIMÁRIA da planilha. */
+  /** Valor literal esperado na coluna LANDING PRIMÁRIA e nas colunas SIM. */
   chave: string;
-  /** Caminho da landing correspondente. */
+  /** Caminho da landing correspondente. Sempre '/' + slug. */
   rota: string;
+  /** Slug da pasta em src/app/(landing)/. */
+  slug: string;
   /**
-   * Nome EXATO do cabeçalho da coluna de perfil na aba Usuarios.
-   * `null` significa: a existência da rota não depende de perfil
-   * (ex.: /sem-lotacao, /admin, /editar-perfil).
+   * Cabeçalho da coluna de perfil que autoriza o acesso.
+   * `null` significa: a rota não depende de perfil.
+   * Derivado de `chavePermissao` (ou do slug, quando omitido).
    */
   coluna: string | null;
 }
 
 /**
- * Departamentos com landing publicada.
- * A `coluna` deve ser idêntica ao cabeçalho da planilha (comparação
- * tolerante a maiúsculas/minúsculas e acentos).
+ * DERIVADO de DEPARTAMENTOS_REGISTRADOS — NÃO EDITAR.
+ * Mantém a ordem de declaração do registro.
  */
-export const DEPARTAMENTOS: readonly Departamento[] = [
-  { chave: 'Master', rota: '/master', coluna: 'Master' },
-  { chave: 'Clube', rota: '/clube', coluna: 'Clube' },
-] as const;
+export const DEPARTAMENTOS: readonly Departamento[] =
+  DEPARTAMENTOS_REGISTRADOS.map(dep => ({
+    chave: chavePermissaoDe(dep),
+    rota: rotaDoDepartamento(dep.slug),
+    slug: dep.slug,
+    coluna: chavePermissaoDe(dep),
+  }));
 
 /**
  * Rotas que não são Áreas Gerenciais e, portanto, não dependem de perfil.
@@ -71,8 +83,17 @@ function normalizar(valor: string): string {
 }
 
 /**
+ * Acesso aos registros completos (logo, itens da sidebar, ícone).
+ * A SideBar e o layout consomem preferencialmente esta função.
+ */
+export function departamentosRegistrados(): readonly DepartamentoRegistrado[] {
+  return DEPARTAMENTOS_REGISTRADOS;
+}
+
+/**
  * Procura a rota correspondente a um departamento.
- * Retorna null quando o valor não corresponde a nenhum departamento cadastrado.
+ * Aceita tanto a chave de permissão ("Master") quanto o slug ("master").
+ * Retorna null quando o valor não corresponde a nenhum departamento.
  */
 export function buscarRotaDepartamento(
   landingPrimaria: string | undefined | null
@@ -81,37 +102,39 @@ export function buscarRotaDepartamento(
   if (!alvo) return null;
 
   const encontrado = DEPARTAMENTOS.find(
-    (departamento) => normalizar(departamento.chave) === alvo
+    d => normalizar(d.chave) === alvo || normalizar(d.slug) === alvo
   );
 
   return encontrado ? encontrado.rota : null;
 }
 
 /**
- * Procura o departamento a partir do slug da URL atual.
- * Ex.: "/clube" -> { chave: 'Clube', rota: '/clube', coluna: 'Clube' }
- *      "/clube/relatorios" -> ainda encontra Clube (primeiro segmento).
- * Retorna null para rotas que não são de departamento.
+ * Procura o departamento a partir do pathname atual.
+ *
+ * Usa o PREFIXO MAIS LONGO que casa, e não apenas o primeiro segmento.
+ * Isso permite que um dia existam rotas aninhadas com dono próprio
+ * (ex.: '/master/usuarios' registrado separadamente) sem ambiguidade.
+ *
+ * Ex.: "/clube"              -> Clube
+ *      "/clube/relatorios"   -> Clube
+ *      "/editar-perfil"      -> null
  */
 export function buscarDepartamentoPorRota(
   pathname: string | null | undefined
 ): Departamento | null {
   if (!pathname) return null;
 
-  const segmento = '/' + String(pathname).split('/').filter(Boolean)[0];
-  if (segmento === '/') return null;
+  const candidatos = DEPARTAMENTOS.filter(
+    d => pathname === d.rota || pathname.startsWith(d.rota + '/')
+  ).sort((a, b) => b.rota.length - a.rota.length);
 
-  return (
-    DEPARTAMENTOS.find(
-      (departamento) => normalizar(departamento.rota) === normalizar(segmento)
-    ) ?? null
-  );
+  return candidatos[0] ?? null;
 }
 
 /**
  * Decide se um usuário pode acessar determinada Área Gerencial.
  *
- * Regras (definidas em 24/10/2026):
+ * Regras:
  *   1. Admin   -> acessa tudo.
  *   2. Demais  -> acessam apenas departamentos com a coluna marcada "SIM".
  *   3. Rotas fora do mapa de departamentos -> liberadas (o guard de sessão
@@ -122,7 +145,7 @@ export function buscarDepartamentoPorRota(
  */
 export function podeAcessarRota(
   pathname: string | null | undefined,
-  user: { perfil?: Record<string, boolean> } | null | undefined
+  user: { landingPrimaria?: string; perfil?: Record<string, boolean> } | null | undefined
 ): boolean {
   // Admin tem passe livre em qualquer Área Gerencial.
   if (user?.perfil?.Admin === true) return true;
@@ -138,12 +161,18 @@ export function podeAcessarRota(
   // Comparação tolerante: o cabeçalho pode ter acento ou caixa diferentes.
   const perfil = user?.perfil ?? {};
   const chavePerfil = Object.keys(perfil).find(
-    (chave) => normalizar(chave) === normalizar(departamento.coluna as string)
+    chave => normalizar(chave) === normalizar(departamento.coluna as string)
   );
 
-  if (!chavePerfil) return false;
+  // Sem a coluna no perfil, ainda pode valer a landing primária.
+  // Espelha exatamente a regra de listarAreasPermitidas().
+  if (!chavePerfil) {
+    return normalizar(departamento.chave) === normalizar(user?.landingPrimaria ?? '');
+  }
 
-  return perfil[chavePerfil] === true;
+  if (perfil[chavePerfil] === true) return true;
+
+  return normalizar(departamento.chave) === normalizar(user?.landingPrimaria ?? '');
 }
 
 /**
@@ -164,4 +193,43 @@ export function resolverRotaInicial(user: {
 
   const rota = buscarRotaDepartamento(user?.landingPrimaria);
   return rota ?? ROTA_SEM_LOTACAO;
+}
+
+/**
+ * Landings que o usuário tem permissão de acessar.
+ *
+ * Regra de negócio:
+ *   - Admin acessa TODAS as landings publicadas.
+ *   - Demais perfis acessam apenas os departamentos com a coluna SIM,
+ *     mais a própria landing primária (garantia de que o usuário nunca
+ *     fica sem a própria casa).
+ *
+ * A permissão é lida em `user.perfil`, cujas chaves são os cabeçalhos
+ * da planilha. A comparação é tolerante a caixa e acentos.
+ *
+ * Retorna na ordem de DEPARTAMENTOS. Vazio quando o usuário não tem
+ * nenhuma marcação e nenhuma landing primária válida.
+ */
+export function listarAreasPermitidas(user: {
+  landingPrimaria?: string;
+  perfil?: Record<string, boolean>;
+}): Departamento[] {
+  // Admin: passe livre em todas as landings publicadas.
+  if (user?.perfil?.Admin === true) {
+    return [...DEPARTAMENTOS];
+  }
+
+  const perfil = user?.perfil ?? {};
+
+  return DEPARTAMENTOS.filter(departamento => {
+    // Permissão explícita na coluna do departamento (tolerante a caixa/acento).
+    const chavePerfil = Object.keys(perfil).find(
+      chave => normalizar(chave) === normalizar(departamento.chave)
+    );
+
+    if (chavePerfil && perfil[chavePerfil] === true) return true;
+
+    // A landing primária sempre está acessível, mesmo sem coluna explícita.
+    return normalizar(departamento.chave) === normalizar(user?.landingPrimaria ?? '');
+  });
 }

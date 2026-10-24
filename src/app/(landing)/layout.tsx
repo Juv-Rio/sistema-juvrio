@@ -1,10 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import TopBar from '@/components/TopBar';
+import SideBar from '@/components/SideBar';
 import CarregandoJuvrio from '@/components/CarregandoJuvrio';
-import { podeAcessarRota, ROTA_SEM_LOTACAO } from '@/lib/landing';
+import {
+  podeAcessarRota,
+  buscarDepartamentoPorRota,
+  listarAreasPermitidas,
+  ROTA_SEM_LOTACAO,
+} from '@/lib/landing';
+import { SIDEBAR_POR_DEPARTAMENTO } from '@/lib/sidebar';
 
 /**
  * Layout comum a TODAS as landings de departamento.
@@ -12,8 +19,7 @@ import { podeAcessarRota, ROTA_SEM_LOTACAO } from '@/lib/landing';
  * Responsabilidades:
  *  1. Validar a sessão (guard).                    -> "estou autenticado?"
  *  2. Validar a permissão na Área Gerencial atual. -> "posso estar aqui?"
- *  3. Renderizar a moldura visual (fundo + gradiente).
- *  4. Renderizar a TopBar, que é exclusiva das landings.
+ *  3. Renderizar a moldura: TopBar + SideBar.
  *
  * O conteúdo de cada departamento fica em <page.tsx>, que é livre
  * para definir seus próprios cards, cores e módulos.
@@ -27,6 +33,11 @@ export default function LandingLayout({
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [carregando, setCarregando] = useState(true);
+
+  // Estado de colapso da SideBar vive AQUI (e não dentro dela) para
+  // sobreviver à navegação: o layout não remonta entre páginas do
+  // mesmo route group, mas a SideBar sim.
+  const [sidebarColapsada, setSidebarColapsada] = useState(false);
 
   // 1) GUARD DE SESSÃO: quem é você?
   useEffect(() => {
@@ -78,6 +89,33 @@ export default function LandingLayout({
     }
   }, [user, pathname, router]);
 
+  // 3) CONFIG DA SIDEBAR: derivada do departamento da rota atual.
+  //
+  //    Devolve o objeto completo (titulo + logo + itens) ou `null`.
+  //    Rotas fora do mapa de departamentos (ex.: /editar-perfil,
+  //    /sem-lotacao) retornam null, e a SideBar simplesmente não renderiza.
+  const configSideBar = useMemo(() => {
+    const departamento = buscarDepartamentoPorRota(pathname);
+    if (!departamento) return null;
+    return SIDEBAR_POR_DEPARTAMENTO[departamento.chave] ?? null;
+  }, [pathname]);
+
+  // 4) ÁREAS PERMITIDAS: para o seletor no rodapé da SideBar.
+  //
+  //    Admin recebe todas as landings publicadas; demais perfis recebem
+  //    apenas as que têm a coluna SIM correspondente (mais a própria
+  //    landing primária, por segurança). O SeletorArea só aparece quando
+  //    há 2 ou mais áreas — a decisão fica dentro dele.
+  const areasPermitidas = useMemo(() => {
+    if (!user) return [];
+    return listarAreasPermitidas(user);
+  }, [user]);
+
+  const areaAtual = useMemo(() => {
+    const departamento = buscarDepartamentoPorRota(pathname);
+    return departamento?.chave ?? null;
+  }, [pathname]);
+
   // Enquanto a sessão está sendo lida, ou enquanto o usuário (inválido) está
   // sendo redirecionado, a tela de carregamento ocupa a área inteira.
   if (carregando || !user) {
@@ -90,9 +128,22 @@ export default function LandingLayout({
 
       <TopBar user={user} />
 
-      <main className="relative z-10 flex-1 overflow-y-auto p-6">
-        {children}
-      </main>
+      {/* CORPO: SideBar à esquerda + conteúdo à direita */}
+      <div className="relative z-10 flex-1 flex overflow-hidden">
+        {configSideBar && (
+          <SideBar
+            config={configSideBar}
+            colapsada={sidebarColapsada}
+            onToggleColapso={() => setSidebarColapsada(v => !v)}
+            areasPermitidas={areasPermitidas}
+            areaAtual={areaAtual}
+          />
+        )}
+
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
