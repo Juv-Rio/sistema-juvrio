@@ -217,7 +217,7 @@ export default function TopBar({ user }: { user: any }) {
                     ))}
                   </div>
 
-                  <MenuBotao icon={<UserRound size={16} />} label="Editar Perfil" onClick={() => router.push('/portal/editar-perfil')} />
+                  <MenuBotao icon={<UserRound size={16} />} label="Editar Perfil" onClick={() => router.push('/editar-perfil')} />
                   <MenuBotao icon={<Settings size={16} />} label="Configurações" />
                   <div className="h-px bg-slate-100 my-1" />
                   <MenuBotao icon={<LogOut size={16} />} label="Sair" danger onClick={handleLogout} />

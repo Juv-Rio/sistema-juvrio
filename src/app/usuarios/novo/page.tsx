@@ -255,11 +255,11 @@ export default function NovoUsuario() {
       <div className="h-screen relative font-sans antialiased flex flex-col overflow-hidden">
         {backgrounds.map((src, index) => (
           <div key={src} className={`fixed inset-0 z-0 bg-cover bg-center transition-opacity duration-1000 ${bgIndex === index ? 'opacity-100' : 'opacity-0'}`} style={{ backgroundImage: `url('${src}')` }}>
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[4px]"></div>
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"></div>
           </div>
         ))}
         {/* HEADER */}
-        <div className="relative z-10 p-8 md:p-12 flex items-center justify-between flex-shrink-0">
+        <div className="relative z-10 p-8 md:p-12 flex items-center justify-between shrink-0">
           <img src="/logo-juvrio.png" alt="Logo" className="h-16 w-auto drop-shadow-2xl" />
           <div className="bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-lg flex items-center gap-3">
             <ShieldCheck size={24} className="text-blue-300" />
@@ -284,7 +284,7 @@ export default function NovoUsuario() {
             </div>
           </div>
           {/* FOOTER */}
-          <p className="text-center text-white/30 text-[8px] uppercase tracking-[0.5em] mt-4 flex-shrink-0">
+          <p className="text-center text-white/30 text-[8px] uppercase tracking-[0.5em] mt-4 shrink-0">
             © 2026 Secretaria Especial da Juventude Carioca - JUV-RIO
           </p>
         </div>
@@ -302,11 +302,11 @@ export default function NovoUsuario() {
       `}</style>
       {backgrounds.map((src, index) => (
         <div key={src} className={`fixed inset-0 z-0 bg-cover bg-center transition-opacity duration-1000 ${bgIndex === index ? 'opacity-100' : 'opacity-0'}`} style={{ backgroundImage: `url('${src}')` }}>
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[4px]"></div>
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"></div>
         </div>
       ))}
       {/* HEADER - Fixo */}
-      <div className="relative z-10 p-8 md:p-12 flex items-center justify-between flex-shrink-0">
+      <div className="relative z-10 p-8 md:p-12 flex items-center justify-between shrink-0">
         <img src="/logo-juvrio.png" alt="Logo" className="h-16 w-auto drop-shadow-2xl" />
         <div className="flex items-center gap-6">
           <div className="text-right hidden md:block">
@@ -495,7 +495,7 @@ export default function NovoUsuario() {
             </div>
           </div>
         </div>
-        <p className="text-center text-white/30 text-[8px] uppercase tracking-[0.5em] mt-4 flex-shrink-0">
+        <p className="text-center text-white/30 text-[8px] uppercase tracking-[0.5em] mt-4 shrink-0">
           © 2026 Secretaria Especial da Juventude Carioca - JUV-RIO
         </p>
       </div>

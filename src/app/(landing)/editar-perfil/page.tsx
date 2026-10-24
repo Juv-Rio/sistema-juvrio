@@ -74,6 +74,13 @@ export default function EditarPerfil() {
   const [avatares, setAvatares] = useState<string[]>([]);
   const [paginaAvatar, setPaginaAvatar] = useState(0);
 
+  /**
+   * Id da sessão já estreitado para string.
+   * Evita repetir `if (!sessao?.id) return;` em cada handler e deixa o
+   * TypeScript satisfeito ao passar a sessão para funções que exigem objeto.
+   */
+  const idUsuario = sessao?.id ? String(sessao.id) : null;
+
   // ---------- Máscaras (idênticas ao cadastro) ----------
   const maskPhone = (v: string) => {
     const r = v.replace(/\D/g, '');
@@ -99,11 +106,11 @@ export default function EditarPerfil() {
 
   // ---------- Carrega dados do usuário ----------
   useEffect(() => {
-    if (!sessao?.id) return;
+    if (!idUsuario) return;
 
     (async () => {
       try {
-        const res = await fetch(`/api/get-usuario?id=${sessao.id}`);
+        const res = await fetch(`/api/get-usuario?id=${idUsuario}`);
         const json = await res.json();
 
         if (!res.ok || !json.usuario) {
@@ -129,7 +136,7 @@ export default function EditarPerfil() {
         setCarregando(false);
       }
     })();
-  }, [sessao?.id]);
+  }, [idUsuario]);
 
   // ---------- Carrega avatares ----------
   useEffect(() => {
@@ -252,7 +259,7 @@ export default function EditarPerfil() {
 
   // ---------- Salvar dados ----------
   const salvarDados = async () => {
-    if (!sessao?.id) return;
+    if (!idUsuario) return;
 
     if (telefone && telefone.length < 14) {
       setFeedback({ tipo: 'erro', texto: 'Telefone incompleto.' });
@@ -271,7 +278,7 @@ export default function EditarPerfil() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: sessao.id,
+          id: idUsuario,
           campos: {
             Telefone: telefone,
             CEP: cep,
@@ -304,7 +311,7 @@ export default function EditarPerfil() {
 
   // ---------- Salvar senha ----------
   const salvarSenha = async () => {
-    if (!sessao?.id) return;
+    if (!idUsuario) return;
 
     if (!senhaAtual) {
       setFeedback({ tipo: 'erro', texto: 'Informe a senha atual.' });
@@ -330,7 +337,7 @@ export default function EditarPerfil() {
       const res = await fetch('/api/update-usuario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: sessao.id, senhaAtual, senhaNova }),
+        body: JSON.stringify({ id: idUsuario, senhaAtual, senhaNova }),
       });
 
       const json = await res.json();
@@ -353,7 +360,7 @@ export default function EditarPerfil() {
 
   // ---------- Salvar foto ----------
   const salvarFoto = async () => {
-    if (!sessao?.id) return;
+    if (!idUsuario) return;
 
     if (!fotoNova || !previewFoto) {
       setFeedback({ tipo: 'erro', texto: 'Selecione ou envie uma foto primeiro.' });
@@ -402,7 +409,7 @@ export default function EditarPerfil() {
       const resUpdate = await fetch('/api/update-usuario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: sessao.id, novaFotoId: jsonUpload.fileId }),
+        body: JSON.stringify({ id: idUsuario, novaFotoId: jsonUpload.fileId }),
       });
 
       const jsonUpdate = await resUpdate.json();
@@ -441,6 +448,11 @@ export default function EditarPerfil() {
   };
 
   const voltarParaLanding = () => {
+    // Sem sessão carregada não há landing primária a resolver: volta ao login.
+    if (!sessao) {
+      router.push('/');
+      return;
+    }
     router.push(resolverRotaInicial(sessao));
   };
 
@@ -810,7 +822,6 @@ export default function EditarPerfil() {
                 className="absolute inset-0 w-full h-full rounded-full cursor-pointer z-10 group"
               >
                 <span className="sr-only">Selecionar foto do computador</span>
-                {/* Overlay com ícone de câmera ao passar o mouse, quando já há foto */}
                 {previewFoto && (
                   <span className="absolute inset-0 rounded-full bg-slate-900/45 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
                     <Upload size={24} className="text-white" />
@@ -919,7 +930,7 @@ export default function EditarPerfil() {
                     type="button"
                     onClick={() => setPaginaAvatar(p => p + 1)}
                     aria-label="Próximos avatares"
-                    className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white border border-slate-300 shadow-md flex items-center justify-center text-slate-600 hover:text-sky-600 hover:border-sky-400 transition-all z-10 cursor-pointer"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white border border-slate-300 shadow-md flex items-center justify-center text-slate-600 hover:text-sky-600 hover:border-slate-400 transition-all z-10 cursor-pointer"
                   >
                     <ChevronRight size={18} />
                   </button>
