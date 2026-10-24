@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Calendar, Check, Clock, House, UserRound, Settings, LogOut } from 'lucide-react';
+import { Calendar, Check, Clock, House, UserRound, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { resolverRotaInicial } from '@/lib/landing';
 
@@ -218,7 +218,6 @@ export default function TopBar({ user }: { user: any }) {
                   </div>
 
                   <MenuBotao icon={<UserRound size={16} />} label="Editar Perfil" onClick={() => router.push('/editar-perfil')} />
-                  <MenuBotao icon={<Settings size={16} />} label="Configurações" />
                   <div className="h-px bg-slate-100 my-1" />
                   <MenuBotao icon={<LogOut size={16} />} label="Sair" danger onClick={handleLogout} />
                 </div>
