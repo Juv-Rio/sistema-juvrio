@@ -100,7 +100,9 @@ export const DEPARTAMENTOS_REGISTRADOS: DepartamentoRegistrado[] = [
     icone: LayoutDashboard,
     itens: [
       { tipo: 'link', label: 'Visão geral', rota: '/master', icone: LayoutDashboard, exato: true },
+      { tipo: 'link', label: 'Equipe', rota: '/master/equipe', icone: Users },   // ← NOVA LINHA
       {
+
         tipo: 'grupo',
         label: 'Usuários',
         icone: Users,

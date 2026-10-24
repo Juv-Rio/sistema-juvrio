@@ -10,13 +10,15 @@ import type {
 } from '@/lib/sidebar';
 import SeletorArea from '@/components/SeletorArea';
 import type { Departamento } from '@/lib/landing';
+
 /**
  * SideBar transversal das landings de departamento.
  *
  * Estrutura vertical:
- *   1. Cabeçalho — logo do departamento + nome.
- *   2. Navegação rolável — árvore de dois níveis (link | grupo).
- *   3. Rodapé — botão de recolher.
+ *   1. Cabeçalho — logo do departamento emoldurada (só na sidebar expandida).
+ *   2. Seletor de Área — troca entre Áreas Gerenciais permitidas.
+ *   3. Navegação rolável — árvore de dois níveis (link | grupo).
+ *   4. Rodapé — botão de recolher.
  *
  * GRUPOS (acordeão exclusivo):
  *   - Não navegam. Clique alterna a expansão.
@@ -26,6 +28,17 @@ import type { Departamento } from '@/lib/landing';
  *     tem notificação. O número aparece só no filho.
  *   - Com a sidebar colapsada, o grupo exibe só o ícone e o clique
  *     EXPANDE a sidebar (em 72px não há espaço para indentar filhos).
+ *
+ * LOGO:
+ *   As artes têm 300×80px (proporção 3,75:1). Como a largura útil da
+ *   sidebar expandida é 208px (240px - 32px de padding), a logo é
+ *   limitada pela LARGURA — nunca pela altura — para não encolher a
+ *   ponto de ficar ilegível. `object-contain` garante que a proporção
+ *   original seja preservada.
+ *
+ *   Com a sidebar colapsada (72px), a logo e sua moldura não fazem
+ *   sentido visual: o cabeçalho é omitido por inteiro e o seletor de
+ *   área passa a ocupar o topo.
  */
 export default function SideBar({
   config,
@@ -42,7 +55,6 @@ export default function SideBar({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-
   const { titulo, logo, itens } = config;
 
   // Acordeão exclusivo: guarda o label do ÚNICO grupo aberto.
@@ -82,6 +94,7 @@ export default function SideBar({
       onToggleColapso();
       return;
     }
+
     // Acordeão exclusivo: abre este, fecha o que estava aberto.
     setGrupoAberto(prev => (prev === label ? null : label));
   };
@@ -93,7 +106,7 @@ export default function SideBar({
   return (
     <aside
       className={`relative z-10 hidden md:flex flex-col shrink-0 overflow-hidden transition-all duration-300 ${
-        colapsada ? 'w-[72px]' : 'w-60'
+        colapsada ? 'w-18' : 'w-60'
       }`}
       style={{
         background: 'linear-gradient(180deg, #0b1b3a 0%, #122a52 45%, #0e2a4d 100%)',
@@ -110,29 +123,39 @@ export default function SideBar({
       />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-linear-to-b from-sky-400/40 via-white/20 to-transparent" />
 
-      {/* ===== 1) CABEÇALHO: LOGO ===== */}
-      <div
-        className={`relative flex items-center gap-3 shrink-0 h-16 border-b border-white/10 ${
-          colapsada ? 'justify-center px-2' : 'px-4'
-        }`}
-      >
-        <div className="h-9 w-9 shrink-0 rounded-xl bg-white/95 flex items-center justify-center shadow-lg shadow-sky-500/20 p-1.5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logo} alt={titulo} className="h-full w-full object-contain" />
-        </div>
-        {!colapsada && (
-          <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-sky-300/60 leading-none">
-              Área
-            </p>
-            <p className="text-[13px] font-black text-white tracking-tight truncate mt-1">
-              {titulo}
-            </p>
+      {/* ===== 1) CABEÇALHO: LOGO EMOLDURADA (só na SideBar expandida) ===== */}
+      {!colapsada && (
+        <div className="relative shrink-0 border-b border-white/10 flex items-center px-3 py-3">
+          {/*
+            Moldura da logo.
+            Segue o mesmo ID do botão do seletor de área:
+            borda white/15, fundo white/5 e cantos rounded-xl.
+            Como todas as artes chegam em 300×80 (proporção 3,75:1),
+            a moldura tem altura fixa (h-14) e a imagem é limitada por
+            `max-h-full` + `object-contain` — nunca corta, nunca distorce.
+          */}
+          <div className="flex items-center justify-center w-full h-14 rounded-xl border border-white/15 bg-white/5 px-3 shadow-inner shadow-black/20">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logo}
+              alt={titulo}
+              className="max-w-full max-h-full w-auto h-auto object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]"
+            />
           </div>
-        )}
+        </div>
+      )}
+
+      {/* ===== 2) SELETOR DE ÁREA ===== */}
+      <div className="relative shrink-0 pt-2">
+        <SeletorArea
+          areas={areasPermitidas}
+          areaAtual={areaAtual}
+          colapsada={colapsada}
+          onExpandirSidebar={onToggleColapso}
+        />
       </div>
 
-      {/* ===== 2) NAVEGAÇÃO ===== */}
+      {/* ===== 3) NAVEGAÇÃO ===== */}
       <nav className="relative flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-1 sidebar-scroll">
         {!colapsada && (
           <p className="px-3 pb-2 text-[8px] font-black uppercase tracking-[0.3em] text-sky-300/40">
@@ -163,17 +186,9 @@ export default function SideBar({
         )}
       </nav>
 
-       {/* ===== 3) RODAPÉ: SELETOR DE ÁREA + RECOLHER ===== */}
+      {/* ===== 4) RODAPÉ: RECOLHER ===== */}
       <div className="relative shrink-0 border-t border-white/10">
-
-        <SeletorArea
-          areas={areasPermitidas}
-          areaAtual={areaAtual}
-          colapsada={colapsada}
-          onExpandirSidebar={onToggleColapso}
-        />
-
-        <div className="px-2 pb-2">
+        <div className="px-2 py-2">
           <button
             type="button"
             onClick={onToggleColapso}
@@ -196,9 +211,10 @@ export default function SideBar({
 /** Badge numérico (somente para itens-folha). */
 function Badge({ valor, ativo }: { valor?: number; ativo: boolean }) {
   if (typeof valor !== 'number' || valor <= 0) return null;
+
   return (
     <span
-      className={`shrink-0 min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center text-[9px] font-black tabular-nums leading-none ${
+      className={`shrink-0 min-w-5 h-5 px-1.5 rounded-full flex items-center justify-center text-[9px] font-black tabular-nums leading-none ${
         ativo
           ? 'bg-white/25 text-white'
           : 'bg-sky-500/25 text-sky-200 ring-1 ring-sky-400/30'
@@ -248,7 +264,7 @@ function ItemLink({
       } ${colapsada ? 'justify-center' : ''}`}
     >
       {ativo && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-sky-300" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.75 rounded-r-full bg-sky-300" />
       )}
 
       <div className="relative shrink-0">
@@ -291,7 +307,6 @@ function ItemGrupo({
   const temNotificacao = grupo.subitens.some(
     sub => typeof sub.notificacoes === 'number' && sub.notificacoes > 0
   );
-
   const contemAtivo = grupo.subitens.some(
     sub => caminhoAtual === sub.rota || caminhoAtual.startsWith(sub.rota + '/')
   );
